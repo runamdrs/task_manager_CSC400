@@ -1,0 +1,146 @@
+/* Apply predictable sizing to every element. */
+* {
+  box-sizing: border-box;
+}
+
+/* Set the page-wide typography, spacing, and neutral color palette. */
+body {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1.5;
+  color: #222;
+  background: #f5f5f5;
+}
+
+/* Constrain the application content and center it on larger screens. */
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+/* Keep the main heading close to its introductory text. */
+h1 {
+  margin-bottom: 4px;
+}
+
+/* Separate the task section from the form above it. */
+h2 {
+  margin-top: 32px;
+  margin-bottom: 12px;
+}
+
+/* Frame the add/edit form as the primary input surface. */
+.task-form {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+/* Add consistent vertical spacing between form controls. */
+.form-field {
+  margin-bottom: 12px;
+}
+
+/* Place each form label above its corresponding control. */
+.form-field label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Make controls fill the form while preserving the page typography. */
+.form-field input,
+.form-field textarea,
+.form-field select {
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+/* Keep form actions aligned with a small gap. */
+.form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Highlight validation feedback for quick scanning. */
+.error {
+  color: #a00;
+  margin: 0 0 12px;
+}
+
+/* Remove default list markers and padding from the task collection. */
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Frame each task and separate it from the next item. */
+.task-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+/* Visually distinguish completed task titles. */
+.task-item.completed h3 {
+  text-decoration: line-through;
+  color: #666;
+}
+
+/* Tighten spacing around each task title. */
+.task-info h3 {
+  margin: 0 0 8px;
+}
+
+/* Keep task descriptions and metadata compact. */
+.task-info p {
+  margin: 0 0 8px;
+}
+
+/* Allow action buttons to wrap on narrow screens. */
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Make every button inherit the application's text style. */
+button {
+  font: inherit;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+/* Make the primary task action larger, rounded, and easy to notice. */
+.primary-action {
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #f97316;
+  color: #fff;
+  font-weight: bold;
+  box-shadow: 0 3px 0 #c2410c;
+}
+
+/* Give the primary action a lively response while it is hovered. */
+.primary-action:hover {
+  background: #ea580c;
+}
+
+/* Preserve a clear keyboard focus indicator for the primary action. */
+.primary-action:focus-visible {
+  outline: 3px solid #fdba74;
+  outline-offset: 3px;
+}
+
+/* Present an informative state when no tasks are available. */
+.empty-message {
+  padding: 16px;
+  border: 1px dashed #999;
+  background: #fff;
+  color: #555;
+}
