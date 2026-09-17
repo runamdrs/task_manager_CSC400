@@ -2,6 +2,8 @@
 import { useState } from 'react';
 // Import the form responsible for creating and editing tasks.
 import TaskForm from './components/TaskForm.jsx';
+// Import the weekly breakfast, lunch, and dinner planner.
+import MealPlanner from './components/MealPlanner.jsx';
 // Import the list responsible for rendering all tasks.
 import TaskList from './components/TaskList.jsx';
 // Import the browser-storage helpers used to persist tasks between visits.
@@ -136,6 +138,9 @@ function App() {
       {/* Display the application heading and its short description. */}
       <h1>TaskFlow</h1>
       <p>A simple task manager that stores data in your browser.</p>
+
+      {/* Show a first slice of the weekly meal planner above the task tools. */}
+      <MealPlanner />
 
       {/* The form switches between add and edit behavior through its props. */}
       <TaskForm
