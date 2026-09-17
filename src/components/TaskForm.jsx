@@ -7,6 +7,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState('medium');
+  const [taskType, setTaskType] = useState('general');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -16,6 +17,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
       setDescription(editingTask.description);
       setDueDate(editingTask.dueDate);
       setPriority(editingTask.priority);
+      setTaskType(editingTask.taskType || 'general');
       setError('');
     } else {
       // Reset every field when the form returns to add mode.
@@ -23,6 +25,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
       setDescription('');
       setDueDate('');
       setPriority('medium');
+      setTaskType('general');
       setError('');
     }
   }, [editingTask]);
@@ -46,6 +49,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
       description: description.trim(),
       dueDate,
       priority,
+      taskType,
     });
 
     // Clear the fields after a successful submission.
@@ -53,6 +57,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
     setDescription('');
     setDueDate('');
     setPriority('medium');
+    setTaskType('general');
     setError('');
   }
 
@@ -62,6 +67,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
     setDescription('');
     setDueDate('');
     setPriority('medium');
+    setTaskType('general');
     setError('');
     onCancel();
   }
@@ -116,6 +122,18 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
           <option value="low">Low</option>
           <option value="medium">Medium</option>
           <option value="high">High</option>
+        </select>
+      </div>
+
+      <div className="form-field">
+        <label htmlFor="taskType">Task Type</label>
+        <select
+          id="taskType"
+          value={taskType}
+          onChange={(event) => setTaskType(event.target.value)}
+        >
+          <option value="general">General</option>
+          <option value="cooking">Cooking</option>
         </select>
       </div>
 

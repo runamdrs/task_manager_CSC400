@@ -8,7 +8,8 @@ function TaskItem({ task, onEdit, onDelete, onToggleComplete }) {
         {task.description && <p>{task.description}</p>}
         {/* Show the task metadata and its current completion status. */}
         <p>
-          Due: {task.dueDate || 'None'} | Priority: {task.priority} |{' '}
+          Due: {task.dueDate || 'None'} | Priority: {task.priority} | Type:{' '}
+          {task.taskType === 'cooking' ? 'Cooking' : 'General'} |{' '}
           {task.completed ? 'Completed' : 'Incomplete'}
         </p>
       </div>
