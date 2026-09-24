@@ -4,7 +4,7 @@ import TaskItem from './TaskItem.jsx';
 function TaskList({ tasks, onEdit, onDelete, onToggleComplete }) {
   // Give users guidance when the collection is empty.
   if (tasks.length === 0) {
-    return <p className="empty-message">No tasks yet. Add one above.</p>;
+    return <p className="empty-message">No tasks yet! Add your first task above.</p>;
   }
 
   return (
