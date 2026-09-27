@@ -68,6 +68,7 @@ function App() {
               description: taskData.description,
               dueDate: taskData.dueDate,
               priority: taskData.priority,
+              taskType: taskData.taskType,
             }
           : task
       );
@@ -80,6 +81,7 @@ function App() {
         description: taskData.description,
         dueDate: taskData.dueDate,
         priority: taskData.priority,
+        taskType: taskData.taskType,
         completed: false,
       };
       updatedTasks = [...tasks, newTask];
