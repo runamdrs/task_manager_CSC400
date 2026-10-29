@@ -14,7 +14,7 @@ body {
 
 /* Constrain the application content and center it on larger screens. */
 .app {
-  max-width: 640px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 24px 16px 48px;
 }
@@ -28,6 +28,68 @@ h1 {
 h2 {
   margin-top: 32px;
   margin-bottom: 12px;
+}
+
+/* Frame the weekly meal planner as its own planning surface. */
+.meal-planner {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+/* Keep the planner intro close to the heading. */
+.meal-planner p {
+  margin: 0 0 12px;
+}
+
+/* Allow the week grid to scroll sideways on narrow screens. */
+.meal-planner-table-wrap {
+  overflow-x: auto;
+}
+
+/* Present days as columns and meal types as rows. */
+.meal-planner-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.meal-planner-table th,
+.meal-planner-table td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.meal-planner-table thead th {
+  background: #fafafa;
+  font-weight: bold;
+}
+
+.meal-planner-table tbody th {
+  width: 96px;
+  background: #fafafa;
+}
+
+.meal-planner-table input {
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+/* Keep meal-slot labels available to assistive tech without showing them. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Frame the add/edit form as the primary input surface. */
