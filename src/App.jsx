@@ -51,6 +51,8 @@ function getInitialTasks() {
 function App() {
   // Keep the complete task collection in component state.
   const [tasks, setTasks] = useState(getInitialTasks);
+  // Keep the selected completion filter in UI state only.
+  const [taskFilter, setTaskFilter] = useState('all');
   // Track the task currently being edited, or null while adding a task.
   const [editingTask, setEditingTask] = useState(null);
 
@@ -150,6 +152,8 @@ function App() {
       <h2>Tasks</h2>
       <TaskList
         tasks={tasks}
+        taskFilter={taskFilter}
+        onTaskFilterChange={setTaskFilter}
         onEdit={handleEdit}
         onDelete={handleDelete}
         onToggleComplete={handleToggleComplete}

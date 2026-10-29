@@ -77,6 +77,18 @@ h2 {
   margin: 0;
 }
 
+.task-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.task-filter[aria-pressed='true'] {
+  background: #222;
+  color: #fff;
+}
+
 /* Frame each task and separate it from the next item. */
 .task-item {
   padding: 12px;
