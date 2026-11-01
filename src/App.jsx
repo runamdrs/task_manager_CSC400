@@ -1,9 +1,9 @@
 // Import React state management for the task collection and active edit state.
 import { useState } from 'react';
-// Import the form responsible for creating and editing tasks.
-import TaskForm from './components/TaskForm.jsx';
-// Import the list responsible for rendering all tasks.
-import TaskList from './components/TaskList.jsx';
+import DashboardPage from './components/DashboardPage.jsx';
+import MealPlanner from './components/MealPlanner.jsx';
+import PlaceholderPage from './components/PlaceholderPage.jsx';
+import Sidebar from './components/Sidebar.jsx';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
 
@@ -49,6 +49,7 @@ function getInitialTasks() {
 }
 
 function App() {
+  const [activePage, setActivePage] = useState('dashboard');
   // Keep the complete task collection in component state.
   const [tasks, setTasks] = useState(getInitialTasks);
   // Keep the selected completion filter in UI state only.
@@ -136,28 +137,35 @@ function App() {
   }
 
   return (
-    <div className="app">
-      {/* Display the application heading and its short description. */}
-      <h1>SmartPrep</h1>
-      <p>A simple task manager that stores data in your browser.</p>
-
-      {/* The form switches between add and edit behavior through its props. */}
-      <TaskForm
-        onSubmit={handleSave}
-        editingTask={editingTask}
-        onCancel={handleCancelEdit}
-      />
-
-      {/* Render the current collection and actions for each task. */}
-      <h2>Tasks</h2>
-      <TaskList
-        tasks={tasks}
-        taskFilter={taskFilter}
-        onTaskFilterChange={setTaskFilter}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggleComplete={handleToggleComplete}
-      />
+    <div className="app-shell">
+      <Sidebar activePage={activePage} onNavigate={setActivePage} />
+      <main className="main-content">
+        <div className="page-panel" hidden={activePage !== 'dashboard'}>
+          <DashboardPage
+            tasks={tasks}
+            taskFilter={taskFilter}
+            onTaskFilterChange={setTaskFilter}
+            onSave={handleSave}
+            editingTask={editingTask}
+            onCancelEdit={handleCancelEdit}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggleComplete={handleToggleComplete}
+          />
+        </div>
+        <div className="page-panel" hidden={activePage !== 'meal-planner'}>
+          <MealPlanner />
+        </div>
+        <div className="page-panel" hidden={activePage !== 'recipes'}>
+          <PlaceholderPage title="Recipes" />
+        </div>
+        <div className="page-panel" hidden={activePage !== 'grocery-list'}>
+          <PlaceholderPage title="Grocery List" />
+        </div>
+        <div className="page-panel" hidden={activePage !== 'settings'}>
+          <PlaceholderPage title="Settings" />
+        </div>
+      </main>
     </div>
   );
 }
