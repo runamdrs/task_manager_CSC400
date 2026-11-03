@@ -1,33 +1,8 @@
-// Import React state so each meal slot can be typed independently.
-import { useState } from 'react';
+import { DAYS, MEALS } from '../data/mealPlan.js';
 
-const DAYS = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
-const MEALS = ['Breakfast', 'Lunch', 'Dinner'];
-
-function createEmptyPlan() {
-  // Start every day with blank breakfast, lunch, and dinner slots.
-  return DAYS.map(() => ({
-    Breakfast: '',
-    Lunch: '',
-    Dinner: '',
-  }));
-}
-
-function MealPlanner() {
-  // Keep the current week's meal names in local component state.
-  const [plan, setPlan] = useState(createEmptyPlan);
-
+function MealPlanner({ plan, onPlanChange }) {
   function handleMealChange(dayIndex, meal, value) {
-    // Replace only the edited slot so the rest of the week stays unchanged.
-    setPlan((currentPlan) =>
+    onPlanChange((currentPlan) =>
       currentPlan.map((day, index) =>
         index === dayIndex ? { ...day, [meal]: value } : day
       )
