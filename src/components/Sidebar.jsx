@@ -71,16 +71,12 @@ function Sidebar({ activePage, onNavigate }) {
         }}
         aria-label="SmartPrep home"
       >
-        <span className="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path
-              d="M19.5 4.5c-8.6-.4-13.8 2.8-13.8 9.2 0 3.2 2.1 5.5 5.2 5.5 6.2 0 9-6.2 8.6-14.7Z"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinejoin="round"
-            />
-            <path d="M5 21c2.4-5.3 5.5-8.3 10.1-10.7" stroke="currentColor" strokeWidth="1.7" />
-          </svg>
+        <span className="brand-mark">
+          <img
+            className="brand-logo"
+            src="/assets/smartprep-logo.png"
+            alt="SmartPrep Logo"
+          />
         </span>
         <span className="brand-copy">
           <span className="brand-name">SmartPrep</span>
