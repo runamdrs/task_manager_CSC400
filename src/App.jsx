@@ -4,6 +4,7 @@ import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
 import PlaceholderPage from './components/PlaceholderPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import { createEmptyPlan } from './data/mealPlan.js';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
 
@@ -50,6 +51,7 @@ function getInitialTasks() {
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard');
+  const [mealPlan, setMealPlan] = useState(createEmptyPlan);
   // Keep the complete task collection in component state.
   const [tasks, setTasks] = useState(getInitialTasks);
   // Keep the selected completion filter in UI state only.
@@ -142,6 +144,8 @@ function App() {
       <main className="main-content">
         <div className="page-panel" hidden={activePage !== 'dashboard'}>
           <DashboardPage
+            mealPlan={mealPlan}
+            onNavigate={setActivePage}
             tasks={tasks}
             taskFilter={taskFilter}
             onTaskFilterChange={setTaskFilter}
@@ -154,7 +158,7 @@ function App() {
           />
         </div>
         <div className="page-panel" hidden={activePage !== 'meal-planner'}>
-          <MealPlanner />
+          <MealPlanner plan={mealPlan} onPlanChange={setMealPlan} />
         </div>
         <div className="page-panel" hidden={activePage !== 'recipes'}>
           <PlaceholderPage title="Recipes" />
