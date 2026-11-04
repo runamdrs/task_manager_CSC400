@@ -3,6 +3,7 @@ import { useState } from 'react';
 import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
 import PlaceholderPage from './components/PlaceholderPage.jsx';
+import RecipesPage from './components/RecipesPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import { createEmptyPlan } from './data/mealPlan.js';
 // Import the browser-storage helpers used to persist tasks between visits.
@@ -161,7 +162,7 @@ function App() {
           <MealPlanner plan={mealPlan} onPlanChange={setMealPlan} />
         </div>
         <div className="page-panel" hidden={activePage !== 'recipes'}>
-          <PlaceholderPage title="Recipes" />
+          <RecipesPage />
         </div>
         <div className="page-panel" hidden={activePage !== 'grocery-list'}>
           <PlaceholderPage title="Grocery List" />
