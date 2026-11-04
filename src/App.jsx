@@ -135,11 +135,6 @@ function App() {
 
   return (
     <div className="app">
-      {/* Display the application heading and its short description. */}
-      <h1>TaskFlow</h1>
-      <p>A simple task manager that stores data in your browser.</p>
-
-      {/* Show a first slice of the weekly meal planner above the task tools. */}
       <MealPlanner />
 
       {/* The form switches between add and edit behavior through its props. */}
