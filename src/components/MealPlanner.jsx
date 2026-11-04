@@ -252,6 +252,7 @@ function MealPlanner({ onPlanChange }) {
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [weekPickerOpen, setWeekPickerOpen] = useState(false);
   const [modalState, setModalState] = useState(null);
+  const [mealToRemove, setMealToRemove] = useState(null);
   const [generatedList, setGeneratedList] = useState(null);
   const [actionError, setActionError] = useState('');
 
@@ -345,15 +346,21 @@ function MealPlanner({ onPlanChange }) {
   }
 
   function handleRemoveMeal(meal) {
-    if (!window.confirm(`Remove "${meal.name}" from the meal plan?`)) return;
+    setMealToRemove(meal);
+  }
 
-    const updatedMeals = meals.filter((savedMeal) => savedMeal.id !== meal.id);
+  function confirmRemoveMeal() {
+    const updatedMeals = meals.filter(
+      (savedMeal) => savedMeal.id !== mealToRemove.id
+    );
     try {
       savePlannedMeals(updatedMeals);
       setMeals(updatedMeals);
       setActionError('');
+      setMealToRemove(null);
     } catch (error) {
       setActionError(`Meal could not be removed: ${error.message}`);
+      setMealToRemove(null);
     }
   }
 
@@ -528,6 +535,41 @@ function MealPlanner({ onPlanChange }) {
           onSave={handleSaveMeal}
           onEditOccupied={openEditMeal}
         />
+      )}
+
+      {mealToRemove && (
+        <div className="mp-modal-backdrop">
+          <section
+            className="mp-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="mp-confirm-title"
+            aria-describedby="mp-confirm-description"
+          >
+            <p className="mp-eyebrow">REMOVE FROM YOUR PLAN</p>
+            <h2 id="mp-confirm-title">Remove this meal?</h2>
+            <p id="mp-confirm-description">
+              “{mealToRemove.name}” will be removed from your weekly plan.
+            </p>
+            <div className="mp-modal-actions">
+              <button
+                type="button"
+                className="mp-button mp-button-secondary"
+                onClick={() => setMealToRemove(null)}
+                autoFocus
+              >
+                Keep Meal
+              </button>
+              <button
+                type="button"
+                className="mp-button mp-confirm-remove"
+                onClick={confirmRemoveMeal}
+              >
+                Remove Meal
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </section>
   );

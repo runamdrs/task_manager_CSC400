@@ -715,6 +715,40 @@ h2 {
   box-shadow: 0 22px 70px rgb(14 28 18 / 25%);
 }
 
+.mp-confirm-dialog {
+  width: min(100%, 420px);
+  padding: 23px;
+  border: 1px solid #e5e8e2;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 22px 70px rgb(14 28 18 / 25%);
+}
+
+.mp-confirm-dialog h2 {
+  margin: 6px 0 8px;
+  color: #292e2b;
+  font-family: inherit;
+  font-size: 21px;
+}
+
+.mp-confirm-dialog > p:not(.mp-eyebrow) {
+  margin: 0;
+  color: #6f7a72;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.mp-confirm-remove {
+  border-color: #a45b50;
+  background: #a45b50;
+  color: #fff;
+}
+
+.mp-confirm-remove:hover {
+  border-color: #8d493f;
+  background: #8d493f;
+}
+
 .mp-modal-header {
   display: flex;
   align-items: flex-start;
