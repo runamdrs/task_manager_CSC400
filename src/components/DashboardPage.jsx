@@ -1,4 +1,5 @@
 import { DAYS, MEALS } from '../data/mealPlan.js';
+import { RECIPES } from '../data/recipes.js';
 import TaskForm from './TaskForm.jsx';
 import TaskList from './TaskList.jsx';
 
@@ -162,6 +163,16 @@ function DashboardPage({
   onDelete,
   onToggleComplete,
 }) {
+  const hour = new Date().getHours();
+  const greeting =
+    hour >= 5 && hour < 12
+      ? 'Good morning!'
+      : hour >= 12 && hour < 17
+        ? 'Good afternoon!'
+        : hour >= 17 && hour < 21
+          ? 'Good evening!'
+          : 'Good night!';
+
   const plannedMeals = mealPlan.flatMap((day, dayIndex) =>
     MEALS.flatMap((type) => {
       const name = day[type].trim();
@@ -173,7 +184,7 @@ function DashboardPage({
     <div className="app dashboard-page">
       <header className="dashboard-header">
         <div>
-          <p className="dashboard-eyebrow">Good morning!</p>
+          <p className="dashboard-eyebrow">{greeting}</p>
           <h1>Let&apos;s make this week easier.</h1>
           <p className="dashboard-intro">
             Plan your meals, organize your groceries, and stay on top of prep.
@@ -227,8 +238,8 @@ function DashboardPage({
           hint="Browse recipes"
           onNavigate={onNavigate}
         >
-          <p className="summary-coming-soon">Coming Soon</p>
-          <p className="summary-note">Your saved recipes will appear here.</p>
+          <p className="summary-value">{RECIPES.length}</p>
+          <p className="summary-note">Recipes in your library</p>
         </SummaryCard>
       </section>
 
