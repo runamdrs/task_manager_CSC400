@@ -3,12 +3,21 @@ name: CI
 
 # When should this workflow run?
 on:
-  # On every push to the main branch.
+  # On every push to ANY branch. "**" matches branch names containing
+  # slashes too, so philipp/weekly-meal-planner is covered.
   push:
-    branches: [main]
-  # And on every pull request opened against main.
+    branches: ['**']
+  # And on every pull request, whatever branch it targets.
   pull_request:
-    branches: [main]
+
+# If someone pushes twice in quick succession, the older run is pointless
+# the moment the newer one starts. This cancels the superseded run instead
+# of letting both finish, which keeps the Actions tab readable and saves
+# build minutes. Grouping by head_ref also stops a branch push and its
+# open pull request from both running the same checks twice.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # A single job. The name is ours to choose; it appears in the Actions UI.
