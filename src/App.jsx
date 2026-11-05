@@ -1,11 +1,17 @@
 // Import React state management for the task collection and active edit state.
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
 import PlaceholderPage from './components/PlaceholderPage.jsx';
 import RecipesPage from './components/RecipesPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
-import { createEmptyPlan } from './data/mealPlan.js';
+import {
+  getPurchaseKey,
+  loadGroceryPurchases,
+  saveGroceryPurchases,
+} from './services/groceryStorage.js';
+import { loadPlannedMeals } from './services/mealPlannerStorage.js';
+import { toDateKey } from './utils/dates.js';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
 
@@ -50,15 +56,113 @@ function getInitialTasks() {
   return stored;
 }
 
+function readPlannedMeals() {
+  // The Meal Planner owns this data and reports load errors on its own page.
+  try {
+    return loadPlannedMeals();
+  } catch {
+    return null;
+  }
+}
+
+const PAGES = ['dashboard', 'meal-planner', 'recipes', 'grocery-list', 'settings'];
+
+function getPageFromHash() {
+  // The URL hash (#recipes) is the source of truth for the current page, so
+  // refresh, bookmarks, and the back/forward buttons all work.
+  const page = window.location.hash.slice(1);
+  return PAGES.includes(page) ? page : 'dashboard';
+}
+
+function useClock() {
+  // Re-check the time each minute so "today" rolls over at midnight and the
+  // greeting changes with the time of day. Both are primitives, so React only
+  // re-renders when one of them actually changes.
+  const [todayKey, setTodayKey] = useState(() => toDateKey(new Date()));
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setTodayKey(toDateKey(now));
+      setCurrentHour(now.getHours());
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return { todayKey, currentHour };
+}
+
 function App() {
-  const [activePage, setActivePage] = useState('dashboard');
-  const [mealPlan, setMealPlan] = useState(createEmptyPlan);
+  const [activePage, setActivePage] = useState(getPageFromHash);
+  // Read-only view of the Meal Planner's saved meals for the Dashboard.
+  const [plannedMeals, setPlannedMeals] = useState(() => readPlannedMeals() ?? []);
+  // Grocery purchase status; grocery items themselves are derived, not stored.
+  const [groceryPurchases, setGroceryPurchases] = useState(loadGroceryPurchases);
+  const { todayKey, currentHour } = useClock();
   // Keep the complete task collection in component state.
   const [tasks, setTasks] = useState(getInitialTasks);
   // Keep the selected completion filter in UI state only.
   const [taskFilter, setTaskFilter] = useState('all');
   // Track the task currently being edited, or null while adding a task.
   const [editingTask, setEditingTask] = useState(null);
+
+  // Reload saved meals whenever the Meal Planner reports a change.
+  const refreshPlannedMeals = useCallback(() => {
+    const meals = readPlannedMeals();
+    if (meals) setPlannedMeals(meals);
+  }, []);
+
+  useEffect(() => {
+    // Pick up changes saved from another browser tab.
+    function handleStorage() {
+      refreshPlannedMeals();
+      setGroceryPurchases(loadGroceryPurchases());
+    }
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [refreshPlannedMeals]);
+
+  useEffect(() => {
+    // Follow hash changes from links and the browser's back/forward buttons.
+    function handleHashChange() {
+      // Re-read meals on page change so the Dashboard never shows stale data.
+      refreshPlannedMeals();
+      setActivePage(getPageFromHash());
+    }
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [refreshPlannedMeals]);
+
+  function handleNavigate(page) {
+    if (window.location.hash === `#${page}`) {
+      // Same page: no hashchange will fire, so refresh here instead.
+      refreshPlannedMeals();
+      setActivePage(page);
+      return;
+    }
+    // Adds a history entry; the hashchange listener updates the page.
+    window.location.hash = page;
+  }
+
+  function handleToggleGroceryPurchased(weekStart, item) {
+    const key = getPurchaseKey(weekStart, item.key);
+    const updatedPurchases = { ...groceryPurchases };
+
+    if (item.status === 'purchased') {
+      delete updatedPurchases[key];
+    } else {
+      // Record the requirement covered now, so needing more later is detected.
+      updatedPurchases[key] = {
+        totals: item.totals,
+        quantity: item.quantity,
+        purchasedAt: new Date().toISOString(),
+      };
+    }
+
+    setGroceryPurchases(updatedPurchases);
+    saveGroceryPurchases(updatedPurchases);
+  }
 
   function handleSave(taskData) {
     // Build one replacement array for both create and update operations.
@@ -141,12 +245,16 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} />
+      <Sidebar activePage={activePage} onNavigate={handleNavigate} />
       <main className="main-content">
         <div className="page-panel" hidden={activePage !== 'dashboard'}>
           <DashboardPage
-            mealPlan={mealPlan}
-            onNavigate={setActivePage}
+            plannedMeals={plannedMeals}
+            groceryPurchases={groceryPurchases}
+            todayKey={todayKey}
+            currentHour={currentHour}
+            onToggleGroceryPurchased={handleToggleGroceryPurchased}
+            onNavigate={handleNavigate}
             tasks={tasks}
             taskFilter={taskFilter}
             onTaskFilterChange={setTaskFilter}
@@ -159,7 +267,7 @@ function App() {
           />
         </div>
         <div className="page-panel" hidden={activePage !== 'meal-planner'}>
-          <MealPlanner plan={mealPlan} onPlanChange={setMealPlan} />
+          <MealPlanner onPlanChange={refreshPlannedMeals} />
         </div>
         <div className="page-panel" hidden={activePage !== 'recipes'}>
           <RecipesPage />
