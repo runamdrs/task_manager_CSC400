@@ -48,11 +48,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # 5. The real test for this project: does it still build?
+      # 5. Unit tests: do the grocery selectors and quantity/date helpers
+      #    still behave as specified? A failing test stops the run here.
+      - name: Test
+        run: npm test
+
+      # 6. Does it still build?
       - name: Build
         run: npm run build
 
-      # 6. Keep the produced files so we can download and inspect
+      # 7. Keep the produced files so we can download and inspect
       #    exactly what this run built (slide 22 in the lecture).
       - name: Upload build output
         uses: actions/upload-artifact@v4
