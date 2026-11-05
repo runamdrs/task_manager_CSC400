@@ -359,12 +359,14 @@ body {
 
 .recipe-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
   gap: 16px;
 }
 
 .recipe-card {
   display: flex;
+  width: 100%;
+  max-width: 270px;
   min-width: 0;
   flex-direction: column;
   overflow: hidden;
@@ -375,7 +377,7 @@ body {
 
 .recipe-card-media {
   position: relative;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 5;
   overflow: hidden;
   background: #edf4ed;
 }

@@ -5,21 +5,21 @@ import RecipeDetail from './RecipeDetail.jsx';
 
 const PREP_LIMITS = {
   all: null,
-  '15': 15,
-  '30': 30,
-  '60': 60,
+  under15: (minutes) => minutes < 15,
+  '15-30': (minutes) => minutes >= 15 && minutes <= 30,
+  over30: (minutes) => minutes > 30,
 };
 
 function filterAndSortRecipes(recipes, filters) {
   const query = filters.search.trim().toLowerCase();
-  const prepLimit = PREP_LIMITS[filters.prepTime];
+  const prepFilter = PREP_LIMITS[filters.prepTime];
 
   let results = recipes.filter((recipe) => {
     if (filters.mealType !== 'all' && recipe.mealType !== filters.mealType) {
       return false;
     }
 
-    if (prepLimit !== null && recipe.prepMinutes > prepLimit) {
+    if (prepFilter && !prepFilter(recipe.prepMinutes)) {
       return false;
     }
 
@@ -136,7 +136,6 @@ function RecipesPage() {
             <option value="Breakfast">Breakfast</option>
             <option value="Lunch">Lunch</option>
             <option value="Dinner">Dinner</option>
-            <option value="Snack">Snack</option>
           </select>
         </div>
 
@@ -148,9 +147,9 @@ function RecipesPage() {
             onChange={(event) => setPrepTime(event.target.value)}
           >
             <option value="all">All</option>
-            <option value="15">15 min or less</option>
-            <option value="30">30 min or less</option>
-            <option value="60">60 min or less</option>
+            <option value="under15">Under 15 mins</option>
+            <option value="15-30">15-30 mins</option>
+            <option value="over30">Over 30 mins</option>
           </select>
         </div>
 

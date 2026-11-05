@@ -1,5 +1,63 @@
 import { useMemo, useState } from 'react';
 
+const QUANTITY_PATTERN = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)(?=\s|$)/;
+const COMMON_FRACTIONS = [
+  { value: 1 / 8, label: '1/8' },
+  { value: 1 / 6, label: '1/6' },
+  { value: 1 / 4, label: '1/4' },
+  { value: 1 / 3, label: '1/3' },
+  { value: 3 / 8, label: '3/8' },
+  { value: 1 / 2, label: '1/2' },
+  { value: 5 / 8, label: '5/8' },
+  { value: 2 / 3, label: '2/3' },
+  { value: 3 / 4, label: '3/4' },
+  { value: 7 / 8, label: '7/8' },
+];
+
+function parseQuantity(quantity) {
+  if (quantity.includes(' ')) {
+    const [whole, fraction] = quantity.split(' ');
+    const [numerator, denominator] = fraction.split('/').map(Number);
+    return Number(whole) + numerator / denominator;
+  }
+
+  if (quantity.includes('/')) {
+    const [numerator, denominator] = quantity.split('/').map(Number);
+    return numerator / denominator;
+  }
+
+  return Number(quantity);
+}
+
+function formatQuantity(value) {
+  const whole = Math.floor(value);
+  const fraction = value - whole;
+  const nearestFraction = COMMON_FRACTIONS.find(
+    ({ value: fractionValue }) => Math.abs(fraction - fractionValue) < 0.02
+  );
+
+  if (!nearestFraction) {
+    return Number(value.toFixed(2)).toString();
+  }
+
+  if (whole === 0) {
+    return nearestFraction.label;
+  }
+
+  return `${whole} ${nearestFraction.label}`;
+}
+
+function scaleIngredientAmount(amount, originalServings, servings) {
+  const match = amount.match(QUANTITY_PATTERN);
+
+  if (!match || servings === originalServings) {
+    return amount;
+  }
+
+  const scaledQuantity = parseQuantity(match[1]) * (servings / originalServings);
+  return `${formatQuantity(scaledQuantity)}${amount.slice(match[0].length)}`;
+}
+
 function StatIcon({ children }) {
   return (
     <svg
@@ -108,7 +166,7 @@ function RecipeDetail({ recipe, onBack }) {
                 </StatIcon>
                 Serves
               </dt>
-              <dd>{recipe.servings}</dd>
+              <dd>{servings}</dd>
             </div>
           </dl>
 
@@ -144,7 +202,9 @@ function RecipeDetail({ recipe, onBack }) {
                     onChange={() => toggleIngredient(index)}
                   />
                   <span className="recipe-ingredient-name">{ingredient.name}</span>
-                  <span className="recipe-ingredient-amount">{ingredient.amount}</span>
+                  <span className="recipe-ingredient-amount">
+                    {scaleIngredientAmount(ingredient.amount, recipe.servings, servings)}
+                  </span>
                 </label>
               </li>
             ))}
