@@ -2,13 +2,16 @@
 name: CI
 
 # When should this workflow run?
+#
+# Automatic runs are PAUSED until we set up deployment. For now CI only runs
+# when started by hand: Actions tab -> CI -> "Run workflow".
+# To turn automatic runs back on, replace "workflow_dispatch:" below with:
+#
+#   push:
+#     branches: ['**']
+#   pull_request:
 on:
-  # On every push to ANY branch. "**" matches branch names containing
-  # slashes too, so philipp/weekly-meal-planner is covered.
-  push:
-    branches: ['**']
-  # And on every pull request, whatever branch it targets.
-  pull_request:
+  workflow_dispatch:
 
 # If someone pushes twice in quick succession, the older run is pointless
 # the moment the newer one starts. This cancels the superseded run instead
