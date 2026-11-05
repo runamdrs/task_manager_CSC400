@@ -1,5 +1,12 @@
-import { DAYS, MEALS } from '../data/mealPlan.js';
+import { useMemo } from 'react';
 import { RECIPES } from '../data/recipes.js';
+import {
+  MEAL_CATEGORIES,
+  getTodayPrep,
+  getWeeklyGroceries,
+  indexRecipes,
+} from '../selectors/grocery.js';
+import { getWeekdayName } from '../utils/dates.js';
 import TaskForm from './TaskForm.jsx';
 import TaskList from './TaskList.jsx';
 
@@ -48,12 +55,12 @@ function DashboardIcon({ name, className = '' }) {
   );
 }
 
-function SummaryCard({ icon, label, destination, hint, children, onNavigate }) {
+function SummaryCard({ icon, label, destination, hint, summary, children, onNavigate }) {
   return (
     <button
       className="dashboard-summary-card"
       type="button"
-      aria-label={`${label}. ${hint}`}
+      aria-label={summary ? `${label}. ${summary}. ${hint}` : `${label}. ${hint}`}
       onClick={() => onNavigate(destination)}
     >
       <span className="dashboard-icon-wrap">
@@ -107,8 +114,16 @@ function PlannedMealsCard({ meals, onNavigate }) {
       ) : (
         <ul className="planned-meal-list">
           {meals.map((meal) => (
-            <li className="planned-meal" key={`${meal.day}-${meal.type}`}>
-              <span className="planned-meal-day">{meal.day}</span>
+            <li
+              className={`planned-meal${meal.isPast ? ' planned-meal-past' : ''}${
+                meal.isToday ? ' planned-meal-today' : ''
+              }`}
+              key={meal.id}
+            >
+              <span className="planned-meal-day">
+                {meal.isToday ? 'Today' : meal.day}
+                {meal.isPast && <span className="visually-hidden"> (past)</span>}
+              </span>
               <span className="planned-meal-type">{meal.type}</span>
               <span className="planned-meal-name">{meal.name}</span>
             </li>
@@ -119,39 +134,153 @@ function PlannedMealsCard({ meals, onNavigate }) {
   );
 }
 
-function PlaceholderCard({ icon, title, description, action, onNavigate }) {
+function GroceryProgressContent({ weekly }) {
+  if (weekly.total === 0) {
+    return (
+      <>
+        <p className="summary-coming-soon">No groceries needed yet.</p>
+        <p className="summary-note">Add ingredients to this week&apos;s meals.</p>
+      </>
+    );
+  }
+
+  const percent = Math.round((weekly.purchasedCount / weekly.total) * 100);
+  return (
+    <>
+      <p className="summary-value">{weekly.remaining}</p>
+      <p className="summary-note">
+        {weekly.remaining === 0
+          ? 'Everything is purchased'
+          : `${weekly.remaining === 1 ? 'item' : 'items'} left to buy`}
+      </p>
+      <span
+        className="grocery-progress-track"
+        role="progressbar"
+        aria-label="Grocery items purchased"
+        aria-valuemin={0}
+        aria-valuemax={weekly.total}
+        aria-valuenow={weekly.purchasedCount}
+      >
+        <span className="grocery-progress-fill" style={{ width: `${percent}%` }} />
+      </span>
+      <p className="summary-note">
+        {weekly.purchasedCount} of {weekly.total} purchased
+      </p>
+    </>
+  );
+}
+
+function getGroceryNote(item) {
+  const weeklyItem = item.weeklyItem;
+  if (weeklyItem.status === 'needs-more') {
+    return `More needed: ${weeklyItem.quantity} for the week`;
+  }
+  if (weeklyItem.quantity && weeklyItem.quantity !== item.quantity) {
+    return `${weeklyItem.quantity} needed this week`;
+  }
+  return '';
+}
+
+function TodayPrepCard({ prep, weekStart, recipesById, onToggleGroceryPurchased, onNavigate }) {
   return (
     <section className="dashboard-card prep-tasks-card">
       <div className="dashboard-section-heading">
         <div>
           <p className="dashboard-eyebrow">Today</p>
-          <h2>{title}</h2>
+          <h2>Prep Tasks</h2>
         </div>
-        {action && (
-          <button
-            className="dashboard-text-action"
-            type="button"
-            onClick={() => onNavigate(action.page)}
-          >
-            {action.label} <span aria-hidden="true">→</span>
-          </button>
-        )}
+        <button
+          className="dashboard-text-action"
+          type="button"
+          onClick={() => onNavigate('meal-planner')}
+        >
+          View Plan <span aria-hidden="true">→</span>
+        </button>
       </div>
-      <div className="dashboard-placeholder">
-        <span className="dashboard-icon-wrap">
-          <DashboardIcon name={icon} className="dashboard-icon" />
-        </span>
-        <div>
-          <h3>{title === 'Prep Tasks' ? 'Ready to start cooking?' : title}</h3>
-          <p>{description}</p>
+
+      {prep.mealCount === 0 ? (
+        <div className="dashboard-placeholder">
+          <span className="dashboard-icon-wrap">
+            <DashboardIcon name="checklist" className="dashboard-icon" />
+          </span>
+          <div>
+            <h3>Nothing planned for today.</h3>
+            <p>Add a meal to today&apos;s plan to see its shopping and meals here.</p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="today-prep-section">
+            <h3 className="today-prep-heading">Grocery Shopping</h3>
+            {prep.groceries.length === 0 ? (
+              <p className="today-prep-note">
+                {prep.ingredientCount === 0
+                  ? "Today's meals don't list any ingredients yet."
+                  : "Everything for today's meals is purchased."}
+              </p>
+            ) : (
+              <ul className="today-grocery-list">
+                {prep.groceries.map((item) => {
+                  const note = getGroceryNote(item);
+                  return (
+                    <li key={item.key}>
+                      <label className="today-grocery-item">
+                        <input
+                          type="checkbox"
+                          checked={false}
+                          onChange={() => onToggleGroceryPurchased(weekStart, item.weeklyItem)}
+                        />
+                        <span>
+                          <span className="today-grocery-name">{item.name}</span>
+                          {item.quantity && (
+                            <span className="today-grocery-quantity"> – {item.quantity}</span>
+                          )}
+                          {note && <span className="today-grocery-note">{note}</span>}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {MEAL_CATEGORIES.filter((category) => prep.mealsByCategory[category].length > 0).map(
+            (category) => (
+              <div className="today-prep-section" key={category}>
+                <h3 className="today-prep-heading">{category}</h3>
+                <ul className="today-meal-list">
+                  {prep.mealsByCategory[category].map((meal) => (
+                    <li key={meal.id}>
+                      {meal.recipeId && recipesById.has(meal.recipeId) ? (
+                        <button
+                          className="today-meal-link"
+                          type="button"
+                          onClick={() => onNavigate('recipes')}
+                        >
+                          {meal.name}
+                        </button>
+                      ) : (
+                        meal.name
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          )}
+        </>
+      )}
     </section>
   );
 }
 
 function DashboardPage({
-  mealPlan,
+  plannedMeals,
+  groceryPurchases,
+  todayKey,
+  currentHour,
+  onToggleGroceryPurchased,
   onNavigate,
   tasks,
   taskFilter,
@@ -163,7 +292,8 @@ function DashboardPage({
   onDelete,
   onToggleComplete,
 }) {
-  const hour = new Date().getHours();
+  // The hour comes from App's once-a-minute clock so the greeting stays current.
+  const hour = currentHour;
   const greeting =
     hour >= 5 && hour < 12
       ? 'Good morning!'
@@ -173,12 +303,34 @@ function DashboardPage({
           ? 'Good evening!'
           : 'Good night!';
 
-  const plannedMeals = mealPlan.flatMap((day, dayIndex) =>
-    MEALS.flatMap((type) => {
-      const name = day[type].trim();
-      return name ? [{ day: DAYS[dayIndex], type, name }] : [];
-    })
+  const recipesById = useMemo(() => indexRecipes(RECIPES), []);
+  const weekly = useMemo(
+    () => getWeeklyGroceries(plannedMeals, recipesById, groceryPurchases, todayKey),
+    [plannedMeals, recipesById, groceryPurchases, todayKey]
   );
+  const todayPrep = useMemo(
+    () => getTodayPrep(plannedMeals, recipesById, weekly, todayKey),
+    [plannedMeals, recipesById, weekly, todayKey]
+  );
+  const weekMeals = [...weekly.weekMeals]
+    .sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        MEAL_CATEGORIES.indexOf(a.category) - MEAL_CATEGORIES.indexOf(b.category)
+    )
+    .map((meal) => ({
+      id: meal.id,
+      day: getWeekdayName(meal.date),
+      type: meal.category,
+      name: meal.name,
+      // Date keys are YYYY-MM-DD, so string comparison matches date order.
+      isPast: meal.date < todayKey,
+      isToday: meal.date === todayKey,
+    }));
+  const grocerySummary =
+    weekly.total === 0
+      ? 'No groceries needed yet'
+      : `${weekly.remaining} of ${weekly.total} items left to buy`;
 
   return (
     <div className="app dashboard-page">
@@ -208,7 +360,7 @@ function DashboardPage({
           hint="View meal plan"
           onNavigate={onNavigate}
         >
-          <p className="summary-value">{plannedMeals.length}</p>
+          <p className="summary-value">{weekMeals.length}</p>
           <p className="summary-note">Planned this week</p>
         </SummaryCard>
         <SummaryCard
@@ -216,10 +368,10 @@ function DashboardPage({
           label="Grocery Progress"
           destination="grocery-list"
           hint="Open grocery list"
+          summary={grocerySummary}
           onNavigate={onNavigate}
         >
-          <p className="summary-coming-soon">Coming Soon</p>
-          <p className="summary-note">Grocery tracking will be available here.</p>
+          <GroceryProgressContent weekly={weekly} />
         </SummaryCard>
         <SummaryCard
           icon="checklist"
@@ -244,13 +396,13 @@ function DashboardPage({
       </section>
 
       <div className="dashboard-content-grid">
-        <PlannedMealsCard meals={plannedMeals} onNavigate={onNavigate} />
+        <PlannedMealsCard meals={weekMeals} onNavigate={onNavigate} />
         <div className="dashboard-right-column">
-          <PlaceholderCard
-            icon="checklist"
-            title="Prep Tasks"
-            description="Your cooking tasks will appear here once you start preparing a recipe."
-            action={{ label: 'View Recipes', page: 'recipes' }}
+          <TodayPrepCard
+            prep={todayPrep}
+            weekStart={weekly.weekStart}
+            recipesById={recipesById}
+            onToggleGroceryPurchased={onToggleGroceryPurchased}
             onNavigate={onNavigate}
           />
         </div>
