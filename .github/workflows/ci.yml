@@ -1,0 +1,67 @@
+# Name shown in the repository's "Actions" tab.
+name: CI
+
+# When should this workflow run?
+on:
+  # On every push to ANY branch. "**" matches branch names containing
+  # slashes too, so philipp/weekly-meal-planner is covered.
+  push:
+    branches: ['**']
+  # And on every pull request, whatever branch it targets.
+  pull_request:
+
+# If someone pushes twice in quick succession, the older run is pointless
+# the moment the newer one starts. This cancels the superseded run instead
+# of letting both finish, which keeps the Actions tab readable and saves
+# build minutes. Grouping by head_ref also stops a branch push and its
+# open pull request from both running the same checks twice.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # A single job. The name is ours to choose; it appears in the Actions UI.
+  build:
+    # GitHub gives us a fresh, empty Ubuntu virtual machine for this job.
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Copy the repository onto the fresh machine.
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # 2. Install Node.js. "cache: npm" reuses the dependency cache
+      #    between runs so later runs are much faster.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # 3. Install dependencies exactly as pinned in package-lock.json.
+      #    "npm ci" is the CI-safe version of "npm install": it never
+      #    silently upgrades a package behind your back.
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Static checks: does the code follow our lint rules?
+      - name: Lint
+        run: npm run lint
+
+      # 5. Unit tests: do the grocery selectors and quantity/date helpers
+      #    still behave as specified? A failing test stops the run here.
+      - name: Test
+        run: npm test
+
+      # 6. Does it still build?
+      - name: Build
+        run: npm run build
+
+      # 7. Keep the produced files so we can download and inspect
+      #    exactly what this run built (slide 22 in the lecture).
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

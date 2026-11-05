@@ -1947,6 +1947,22 @@ button {
   text-overflow: ellipsis;
 }
 
+/* Earlier days this week stay visible but recede. */
+.planned-meal-past .planned-meal-day,
+.planned-meal-past .planned-meal-name {
+  color: #667067;
+  font-weight: 400;
+}
+
+.planned-meal-past .planned-meal-type {
+  color: #667067;
+  background: transparent;
+}
+
+.planned-meal-today .planned-meal-day {
+  color: #203e2c;
+}
+
 .dashboard-empty-state {
   display: flex;
   min-height: 208px;
@@ -1992,6 +2008,105 @@ button {
   color: #7a8379;
   font-size: 11px;
   line-height: 1.55;
+}
+
+.grocery-progress-track {
+  display: block;
+  width: 100%;
+  min-width: 90px;
+  height: 6px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6ebe2;
+}
+
+.grocery-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #477354;
+  transition: width 200ms ease;
+}
+
+.today-prep-section + .today-prep-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #eff0eb;
+}
+
+.today-prep-heading {
+  margin: 0 0 8px;
+  color: #6c796d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.today-prep-note {
+  margin: 0;
+  color: #7a8379;
+  font-size: 12px;
+}
+
+.today-grocery-list,
+.today-meal-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-grocery-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #3f4a41;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.today-grocery-item input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  accent-color: #477354;
+}
+
+.today-grocery-name {
+  font-weight: 600;
+}
+
+.today-grocery-quantity {
+  color: #5f6b61;
+}
+
+.today-grocery-note {
+  display: block;
+  color: #858b82;
+  font-size: 11px;
+}
+
+.today-meal-list li {
+  color: #3f4a41;
+  font-size: 13px;
+}
+
+.today-meal-link {
+  padding: 0;
+  border: 0;
+  color: #467052;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.today-meal-link:hover {
+  color: #203e2c;
 }
 
 .legacy-task-manager {
