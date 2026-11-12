@@ -1,11 +1,18 @@
 // Import React state management for the task collection and active edit state.
 import { useState } from 'react';
+
 // Import the form responsible for creating and editing tasks.
 import TaskForm from './components/TaskForm.jsx';
+
 // Import the list responsible for rendering all tasks.
 import TaskList from './components/TaskList.jsx';
+
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
+
+// Import the Smart Grocery List component.
+import GroceryList from './components/GroceryList.jsx';
+
 
 // Provide starter data when the browser has no saved tasks yet.
 const SAMPLE_TASKS = [
@@ -36,7 +43,7 @@ const SAMPLE_TASKS = [
 ];
 
 function getInitialTasks() {
-  // Read saved tasks before the first render so the app starts with current data.
+  // Read saved tasks before the first render.
   const stored = loadTasks();
 
   // Seed storage only for a first-time visitor.
@@ -51,15 +58,21 @@ function getInitialTasks() {
 function App() {
   // Keep the complete task collection in component state.
   const [tasks, setTasks] = useState(getInitialTasks);
-  // Track the task currently being edited, or null while adding a task.
+
+  // Track the task currently being edited.
   const [editingTask, setEditingTask] = useState(null);
 
+  // Store all grocery items.
+  const [groceryItems, setGroceryItems] = useState([]);
+
+  // Track which main page the user is viewing.
+  const [currentPage, setCurrentPage] = useState('tasks');
+
+
   function handleSave(taskData) {
-    // Build one replacement array for both create and update operations.
     let updatedTasks;
 
     if (editingTask) {
-      // Replace only the matching task while preserving its id and completion state.
       updatedTasks = tasks.map((task) =>
         task.id === editingTask.id
           ? {
@@ -71,9 +84,9 @@ function App() {
             }
           : task
       );
+
       setEditingTask(null);
     } else {
-      // New tasks receive a unique id and begin as incomplete.
       const newTask = {
         id: crypto.randomUUID(),
         title: taskData.title,
@@ -82,78 +95,194 @@ function App() {
         priority: taskData.priority,
         completed: false,
       };
+
       updatedTasks = [...tasks, newTask];
     }
 
-    // Update the UI and browser storage together.
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
   }
 
+
   function handleEdit(task) {
-    // Pass the selected task to the form so its fields can be populated.
     setEditingTask(task);
   }
 
+
   function handleCancelEdit() {
-    // Returning to add mode clears the active edit selection.
     setEditingTask(null);
   }
 
+
   function handleDelete(id) {
-    // Ask for confirmation before permanently removing a task.
-    const confirmed = window.confirm('Are you sure you want to delete this task?');
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this task?'
+    );
 
     if (!confirmed) {
-      // Leave state unchanged when the user cancels the confirmation dialog.
       return;
     }
 
-    // Remove the task with the requested id from the collection.
     const updatedTasks = tasks.filter((task) => task.id !== id);
-    // Persist the deletion immediately so it survives a page reload.
+
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
 
     if (editingTask && editingTask.id === id) {
-      // Exit edit mode if the task being edited was deleted.
       setEditingTask(null);
     }
   }
 
+
   function handleToggleComplete(id) {
-    // Toggle completion without mutating the existing task objects.
     const updatedTasks = tasks.map((task) =>
-      task.id === id ? { ...task, completed: !task.completed } : task
+      task.id === id
+        ? { ...task, completed: !task.completed }
+        : task
     );
-    // Keep storage synchronized with the visible completion state.
+
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
   }
 
+
+  // -----------------------------
+  // SMART GROCERY LIST FUNCTIONS
+  // -----------------------------
+
+  function handleAddGroceryItem(itemData) {
+    const existingItem = groceryItems.find(
+      (item) =>
+        item.name.toLowerCase() === itemData.name.toLowerCase()
+    );
+
+    // If the item already exists, combine the quantities.
+    if (existingItem) {
+      const updatedItems = groceryItems.map((item) =>
+        item.id === existingItem.id
+          ? {
+              ...item,
+              quantity: `${item.quantity} + ${itemData.quantity}`,
+            }
+          : item
+      );
+
+      setGroceryItems(updatedItems);
+      return;
+    }
+
+    // Add a new grocery item.
+    const newItem = {
+      id: crypto.randomUUID(),
+      name: itemData.name,
+      quantity: itemData.quantity,
+      purchased: false,
+    };
+
+    setGroceryItems([...groceryItems, newItem]);
+  }
+
+
+  function handleDeleteGroceryItem(id) {
+    const updatedItems = groceryItems.filter(
+      (item) => item.id !== id
+    );
+
+    setGroceryItems(updatedItems);
+  }
+
+
+  function handleTogglePurchased(id) {
+    const updatedItems = groceryItems.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            purchased: !item.purchased,
+          }
+        : item
+    );
+
+    setGroceryItems(updatedItems);
+  }
+
+
   return (
     <div className="app">
-      {/* Display the application heading and its short description. */}
-      <h1>TaskFlow</h1>
-      <p>A simple task manager that stores data in your browser.</p>
 
-      {/* The form switches between add and edit behavior through its props. */}
-      <TaskForm
-        onSubmit={handleSave}
-        editingTask={editingTask}
-        onCancel={handleCancelEdit}
-      />
+      {/* Main navigation */}
+      <nav className="main-navigation">
+        <div className="app-logo">
+          TaskFlow
+        </div>
 
-      {/* Render the current collection and actions for each task. */}
-      <h2>Tasks</h2>
-      <TaskList
-        tasks={tasks}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggleComplete={handleToggleComplete}
-      />
+        <div className="navigation-buttons">
+          <button
+            className={`nav-button ${
+              currentPage === 'tasks' ? 'active' : ''
+            }`}
+            onClick={() => setCurrentPage('tasks')}
+          >
+            Tasks
+          </button>
+
+          <button
+            className={`nav-button ${
+              currentPage === 'grocery' ? 'active' : ''
+            }`}
+            onClick={() => setCurrentPage('grocery')}
+          >
+            Grocery List
+          </button>
+        </div>
+      </nav>
+
+
+      {/* Tasks Page */}
+      {currentPage === 'tasks' && (
+        <main className="page-content">
+
+          <h1>TaskFlow</h1>
+
+          <p>
+            A simple task manager that stores data in your browser.
+          </p>
+
+          <TaskForm
+            onSubmit={handleSave}
+            editingTask={editingTask}
+            onCancel={handleCancelEdit}
+          />
+
+          <h2>Tasks</h2>
+
+          <TaskList
+            tasks={tasks}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggleComplete={handleToggleComplete}
+          />
+
+        </main>
+      )}
+
+
+      {/* Grocery List Page */}
+      {currentPage === 'grocery' && (
+        <main className="page-content">
+
+          <GroceryList
+            items={groceryItems}
+            onAdd={handleAddGroceryItem}
+            onDelete={handleDeleteGroceryItem}
+            onTogglePurchased={handleTogglePurchased}
+          />
+
+        </main>
+      )}
+
     </div>
   );
 }
 
 export default App;
+      
