@@ -1,12 +1,20 @@
 // Import React state management for the task collection and active edit state.
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import DashboardPage from './components/DashboardPage.jsx';
+import MealPlanner from './components/MealPlanner.jsx';
+import PlaceholderPage from './components/PlaceholderPage.jsx';
+import RecipesPage from './components/RecipesPage.jsx';
+import Sidebar from './components/Sidebar.jsx';
+import { getWeeklyGroceries, indexRecipes } from './selectors/grocery.js';
 
-// Import the form responsible for creating and editing tasks.
-import TaskForm from './components/TaskForm.jsx';
 
-// Import the list responsible for rendering all tasks.
-import TaskList from './components/TaskList.jsx';
-
+import {
+  getPurchaseKey,
+  loadGroceryPurchases,
+  saveGroceryPurchases,
+} from './services/groceryStorage.js';
+import { loadPlannedMeals } from './services/mealPlannerStorage.js';
+import { toDateKey } from './utils/dates.js';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
 
@@ -55,19 +63,120 @@ function getInitialTasks() {
   return stored;
 }
 
-function App() {
-  // Keep the complete task collection in component state.
-  const [tasks, setTasks] = useState(getInitialTasks);
+function readPlannedMeals() {
+  // The Meal Planner owns this data and reports load errors on its own page.
+  try {
+    return loadPlannedMeals();
+  } catch {
+    return null;
+  }
+}
 
-  // Track the task currently being edited.
+const PAGES = ['dashboard', 'meal-planner', 'recipes', 'grocery-list', 'settings'];
+
+function getPageFromHash() {
+  // The URL hash (#recipes) is the source of truth for the current page, so
+  // refresh, bookmarks, and the back/forward buttons all work.
+  const page = window.location.hash.slice(1);
+  return PAGES.includes(page) ? page : 'dashboard';
+}
+
+function useClock() {
+  // Re-check the time each minute so "today" rolls over at midnight and the
+  // greeting changes with the time of day. Both are primitives, so React only
+  // re-renders when one of them actually changes.
+  const [todayKey, setTodayKey] = useState(() => toDateKey(new Date()));
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setTodayKey(toDateKey(now));
+      setCurrentHour(now.getHours());
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return { todayKey, currentHour };
+}
+
+function App() {
+  const [activePage, setActivePage] = useState(getPageFromHash);
+  // Read-only view of the Meal Planner's saved meals for the Dashboard.
+  const [plannedMeals, setPlannedMeals] = useState(() => readPlannedMeals() ?? []);
+  // Grocery purchase status; grocery items themselves are derived, not stored.
+  const [groceryPurchases, setGroceryPurchases] = useState(loadGroceryPurchases);
+  const { todayKey, currentHour } = useClock();
+  // Keep the complete task collection in component state.
+
+  const weeklyGroceries = getWeeklyGroceries(
+    plannedMeals,
+    new Map(),
+    groceryPurchases,
+    todayKey
+    );
+  const [tasks, setTasks] = useState(getInitialTasks);
+  // Keep the selected completion filter in UI state only.
+  const [taskFilter, setTaskFilter] = useState('all');
+  // Track the task currently being edited, or null while adding a task.
   const [editingTask, setEditingTask] = useState(null);
 
-  // Store all grocery items.
-  const [groceryItems, setGroceryItems] = useState([]);
+  // Reload saved meals whenever the Meal Planner reports a change.
+  const refreshPlannedMeals = useCallback(() => {
+    const meals = readPlannedMeals();
+    if (meals) setPlannedMeals(meals);
+  }, []);
 
-  // Track which main page the user is viewing.
-  const [currentPage, setCurrentPage] = useState('tasks');
+  useEffect(() => {
+    // Pick up changes saved from another browser tab.
+    function handleStorage() {
+      refreshPlannedMeals();
+      setGroceryPurchases(loadGroceryPurchases());
+    }
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [refreshPlannedMeals]);
 
+  useEffect(() => {
+    // Follow hash changes from links and the browser's back/forward buttons.
+    function handleHashChange() {
+      // Re-read meals on page change so the Dashboard never shows stale data.
+      refreshPlannedMeals();
+      setActivePage(getPageFromHash());
+    }
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [refreshPlannedMeals]);
+
+  function handleNavigate(page) {
+    if (window.location.hash === `#${page}`) {
+      // Same page: no hashchange will fire, so refresh here instead.
+      refreshPlannedMeals();
+      setActivePage(page);
+      return;
+    }
+    // Adds a history entry; the hashchange listener updates the page.
+    window.location.hash = page;
+  }
+
+  function handleToggleGroceryPurchased(weekStart, item) {
+    const key = getPurchaseKey(weekStart, item.key);
+    const updatedPurchases = { ...groceryPurchases };
+
+    if (item.status === 'purchased') {
+      delete updatedPurchases[key];
+    } else {
+      // Record the requirement covered now, so needing more later is detected.
+      updatedPurchases[key] = {
+        totals: item.totals,
+        quantity: item.quantity,
+        purchasedAt: new Date().toISOString(),
+      };
+    }
+
+    setGroceryPurchases(updatedPurchases);
+    saveGroceryPurchases(updatedPurchases);
+  }
 
   function handleSave(taskData) {
     let updatedTasks;
@@ -81,6 +190,7 @@ function App() {
               description: taskData.description,
               dueDate: taskData.dueDate,
               priority: taskData.priority,
+              taskType: taskData.taskType,
             }
           : task
       );
@@ -93,6 +203,7 @@ function App() {
         description: taskData.description,
         dueDate: taskData.dueDate,
         priority: taskData.priority,
+        taskType: taskData.taskType,
         completed: false,
       };
 
@@ -145,141 +256,51 @@ function App() {
     saveTasks(updatedTasks);
   }
 
-
-  // -----------------------------
-  // SMART GROCERY LIST FUNCTIONS
-  // -----------------------------
-
-  function handleAddGroceryItem(itemData) {
-    const existingItem = groceryItems.find(
-      (item) =>
-        item.name.toLowerCase() === itemData.name.toLowerCase()
-    );
-
-    // If the item already exists, combine the quantities.
-    if (existingItem) {
-      const updatedItems = groceryItems.map((item) =>
-        item.id === existingItem.id
-          ? {
-              ...item,
-              quantity: `${item.quantity} + ${itemData.quantity}`,
-            }
-          : item
-      );
-
-      setGroceryItems(updatedItems);
-      return;
-    }
-
-    // Add a new grocery item.
-    const newItem = {
-      id: crypto.randomUUID(),
-      name: itemData.name,
-      quantity: itemData.quantity,
-      purchased: false,
-    };
-
-    setGroceryItems([...groceryItems, newItem]);
-  }
-
-
-  function handleDeleteGroceryItem(id) {
-    const updatedItems = groceryItems.filter(
-      (item) => item.id !== id
-    );
-
-    setGroceryItems(updatedItems);
-  }
-
-
-  function handleTogglePurchased(id) {
-    const updatedItems = groceryItems.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            purchased: !item.purchased,
-          }
-        : item
-    );
-
-    setGroceryItems(updatedItems);
-  }
-
+  
 
   return (
-    <div className="app">
-
-      {/* Main navigation */}
-      <nav className="main-navigation">
-        <div className="app-logo">
-          TaskFlow
-        </div>
-
-        <div className="navigation-buttons">
-          <button
-            className={`nav-button ${
-              currentPage === 'tasks' ? 'active' : ''
-            }`}
-            onClick={() => setCurrentPage('tasks')}
-          >
-            Tasks
-          </button>
-
-          <button
-            className={`nav-button ${
-              currentPage === 'grocery' ? 'active' : ''
-            }`}
-            onClick={() => setCurrentPage('grocery')}
-          >
-            Grocery List
-          </button>
-        </div>
-      </nav>
-
-
-      {/* Tasks Page */}
-      {currentPage === 'tasks' && (
-        <main className="page-content">
-
-          <h1>TaskFlow</h1>
-
-          <p>
-            A simple task manager that stores data in your browser.
-          </p>
-
-          <TaskForm
-            onSubmit={handleSave}
-            editingTask={editingTask}
-            onCancel={handleCancelEdit}
-          />
-
-          <h2>Tasks</h2>
-
-          <TaskList
+    <div className="app-shell">
+      <Sidebar activePage={activePage} onNavigate={handleNavigate} />
+      <main className="main-content">
+        <div className="page-panel" hidden={activePage !== 'dashboard'}>
+          <DashboardPage
+            plannedMeals={plannedMeals}
+            groceryPurchases={groceryPurchases}
+            todayKey={todayKey}
+            currentHour={currentHour}
+            onToggleGroceryPurchased={handleToggleGroceryPurchased}
+            onNavigate={handleNavigate}
             tasks={tasks}
+            taskFilter={taskFilter}
+            onTaskFilterChange={setTaskFilter}
+            onSave={handleSave}
+            editingTask={editingTask}
+            onCancelEdit={handleCancelEdit}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onToggleComplete={handleToggleComplete}
           />
-
-        </main>
-      )}
-
-
-      {/* Grocery List Page */}
-      {currentPage === 'grocery' && (
-        <main className="page-content">
-
-          <GroceryList
-            items={groceryItems}
-            onAdd={handleAddGroceryItem}
-            onDelete={handleDeleteGroceryItem}
-            onTogglePurchased={handleTogglePurchased}
-          />
-
-        </main>
-      )}
-
+        </div>
+        <div className="page-panel" hidden={activePage !== 'meal-planner'}>
+          <MealPlanner onPlanChange={refreshPlannedMeals} />
+        </div>
+        <div className="page-panel" hidden={activePage !== 'recipes'}>
+          <RecipesPage />
+        </div>
+        <div className="page-panel" hidden={activePage !== 'grocery-list'}>
+            <GroceryList
+              items={weeklyGroceries.items}
+              weekStart={weeklyGroceries.weekStart}
+              total={weeklyGroceries.total}
+              purchasedCount={weeklyGroceries.purchasedCount}
+              remaining={weeklyGroceries.remaining}
+              onTogglePurchased={handleToggleGroceryPurchased}
+              />
+              </div>
+        <div className="page-panel" hidden={activePage !== 'settings'}>
+          <PlaceholderPage title="Settings" />
+        </div>
+      </main>
     </div>
   );
 }

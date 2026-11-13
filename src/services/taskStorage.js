@@ -10,8 +10,18 @@ export function loadTasks() {
     return null;
   }
 
-  // Convert the stored JSON string back into JavaScript task objects.
-  return JSON.parse(stored);
+  try {
+    // Convert the stored JSON string back into JavaScript task objects.
+    const tasks = JSON.parse(stored);
+    // Keep only well-formed tasks so one bad entry can't break the list.
+    return Array.isArray(tasks)
+      ? tasks.filter((task) => task && typeof task === 'object' && typeof task.id === 'string')
+      : [];
+  } catch {
+    // Corrupted data starts the app with an empty list instead of crashing.
+    // An empty list (not null) avoids re-seeding sample tasks over it.
+    return [];
+  }
 }
 
 export function saveTasks(tasks) {
