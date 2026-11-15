@@ -5,6 +5,9 @@ import MealPlanner from './components/MealPlanner.jsx';
 import PlaceholderPage from './components/PlaceholderPage.jsx';
 import RecipesPage from './components/RecipesPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import { getWeeklyGroceries, indexRecipes } from './selectors/grocery.js';
+
+
 import {
   getPurchaseKey,
   loadGroceryPurchases,
@@ -14,6 +17,10 @@ import { loadPlannedMeals } from './services/mealPlannerStorage.js';
 import { toDateKey } from './utils/dates.js';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
+
+// Import the Smart Grocery List component.
+import GroceryList from './components/GroceryList.jsx';
+
 
 // Provide starter data when the browser has no saved tasks yet.
 const SAMPLE_TASKS = [
@@ -44,7 +51,7 @@ const SAMPLE_TASKS = [
 ];
 
 function getInitialTasks() {
-  // Read saved tasks before the first render so the app starts with current data.
+  // Read saved tasks before the first render.
   const stored = loadTasks();
 
   // Seed storage only for a first-time visitor.
@@ -101,6 +108,13 @@ function App() {
   const [groceryPurchases, setGroceryPurchases] = useState(loadGroceryPurchases);
   const { todayKey, currentHour } = useClock();
   // Keep the complete task collection in component state.
+
+  const weeklyGroceries = getWeeklyGroceries(
+    plannedMeals,
+    new Map(),
+    groceryPurchases,
+    todayKey
+    );
   const [tasks, setTasks] = useState(getInitialTasks);
   // Keep the selected completion filter in UI state only.
   const [taskFilter, setTaskFilter] = useState('all');
@@ -165,11 +179,9 @@ function App() {
   }
 
   function handleSave(taskData) {
-    // Build one replacement array for both create and update operations.
     let updatedTasks;
 
     if (editingTask) {
-      // Replace only the matching task while preserving its id and completion state.
       updatedTasks = tasks.map((task) =>
         task.id === editingTask.id
           ? {
@@ -182,9 +194,9 @@ function App() {
             }
           : task
       );
+
       setEditingTask(null);
     } else {
-      // New tasks receive a unique id and begin as incomplete.
       const newTask = {
         id: crypto.randomUUID(),
         title: taskData.title,
@@ -194,54 +206,57 @@ function App() {
         taskType: taskData.taskType,
         completed: false,
       };
+
       updatedTasks = [...tasks, newTask];
     }
 
-    // Update the UI and browser storage together.
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
   }
 
+
   function handleEdit(task) {
-    // Pass the selected task to the form so its fields can be populated.
     setEditingTask(task);
   }
 
+
   function handleCancelEdit() {
-    // Returning to add mode clears the active edit selection.
     setEditingTask(null);
   }
 
+
   function handleDelete(id) {
-    // Ask for confirmation before permanently removing a task.
-    const confirmed = window.confirm('Are you sure you want to delete this task?');
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this task?'
+    );
 
     if (!confirmed) {
-      // Leave state unchanged when the user cancels the confirmation dialog.
       return;
     }
 
-    // Remove the task with the requested id from the collection.
     const updatedTasks = tasks.filter((task) => task.id !== id);
-    // Persist the deletion immediately so it survives a page reload.
+
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
 
     if (editingTask && editingTask.id === id) {
-      // Exit edit mode if the task being edited was deleted.
       setEditingTask(null);
     }
   }
 
+
   function handleToggleComplete(id) {
-    // Toggle completion without mutating the existing task objects.
     const updatedTasks = tasks.map((task) =>
-      task.id === id ? { ...task, completed: !task.completed } : task
+      task.id === id
+        ? { ...task, completed: !task.completed }
+        : task
     );
-    // Keep storage synchronized with the visible completion state.
+
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
   }
+
+  
 
   return (
     <div className="app-shell">
@@ -273,8 +288,15 @@ function App() {
           <RecipesPage />
         </div>
         <div className="page-panel" hidden={activePage !== 'grocery-list'}>
-          <PlaceholderPage title="Grocery List" />
-        </div>
+            <GroceryList
+              items={weeklyGroceries.items}
+              weekStart={weeklyGroceries.weekStart}
+              total={weeklyGroceries.total}
+              purchasedCount={weeklyGroceries.purchasedCount}
+              remaining={weeklyGroceries.remaining}
+              onTogglePurchased={handleToggleGroceryPurchased}
+              />
+              </div>
         <div className="page-panel" hidden={activePage !== 'settings'}>
           <PlaceholderPage title="Settings" />
         </div>
@@ -284,3 +306,4 @@ function App() {
 }
 
 export default App;
+      
