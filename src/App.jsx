@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
-import PlaceholderPage from './components/PlaceholderPage.jsx';
 import RecipesPage from './components/RecipesPage.jsx';
 import SettingsPage from './components/SettingsPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -117,7 +116,8 @@ function App() {
     plannedMeals,
     new Map(),
     groceryPurchases,
-    todayKey
+    todayKey,
+    preferences.firstDayOfWeek
     );
   const [tasks, setTasks] = useState(getInitialTasks);
   // Keep the selected completion filter in UI state only.
