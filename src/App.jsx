@@ -4,6 +4,7 @@ import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
 import PlaceholderPage from './components/PlaceholderPage.jsx';
 import RecipesPage from './components/RecipesPage.jsx';
+import SettingsPage from './components/SettingsPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import {
   getPurchaseKey,
@@ -11,6 +12,7 @@ import {
   saveGroceryPurchases,
 } from './services/groceryStorage.js';
 import { loadPlannedMeals } from './services/mealPlannerStorage.js';
+import { loadPreferences, savePreferences } from './services/preferencesStorage.js';
 import { toDateKey } from './utils/dates.js';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
@@ -99,6 +101,8 @@ function App() {
   const [plannedMeals, setPlannedMeals] = useState(() => readPlannedMeals() ?? []);
   // Grocery purchase status; grocery items themselves are derived, not stored.
   const [groceryPurchases, setGroceryPurchases] = useState(loadGroceryPurchases);
+  // App-wide preferences, such as which day weekly views start on.
+  const [preferences, setPreferences] = useState(loadPreferences);
   const { todayKey, currentHour } = useClock();
   // Keep the complete task collection in component state.
   const [tasks, setTasks] = useState(getInitialTasks);
@@ -118,6 +122,7 @@ function App() {
     function handleStorage() {
       refreshPlannedMeals();
       setGroceryPurchases(loadGroceryPurchases());
+      setPreferences(loadPreferences());
     }
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -162,6 +167,13 @@ function App() {
 
     setGroceryPurchases(updatedPurchases);
     saveGroceryPurchases(updatedPurchases);
+  }
+
+  function handleFirstDayOfWeekChange(firstDayOfWeek) {
+    // Only the layout of weekly views changes; meal dates are untouched.
+    const updatedPreferences = { ...preferences, firstDayOfWeek };
+    setPreferences(updatedPreferences);
+    savePreferences(updatedPreferences);
   }
 
   function handleSave(taskData) {
@@ -253,6 +265,7 @@ function App() {
             groceryPurchases={groceryPurchases}
             todayKey={todayKey}
             currentHour={currentHour}
+            firstDayOfWeek={preferences.firstDayOfWeek}
             onToggleGroceryPurchased={handleToggleGroceryPurchased}
             onNavigate={handleNavigate}
             tasks={tasks}
@@ -267,7 +280,10 @@ function App() {
           />
         </div>
         <div className="page-panel" hidden={activePage !== 'meal-planner'}>
-          <MealPlanner onPlanChange={refreshPlannedMeals} />
+          <MealPlanner
+            onPlanChange={refreshPlannedMeals}
+            firstDayOfWeek={preferences.firstDayOfWeek}
+          />
         </div>
         <div className="page-panel" hidden={activePage !== 'recipes'}>
           <RecipesPage />
@@ -276,7 +292,10 @@ function App() {
           <PlaceholderPage title="Grocery List" />
         </div>
         <div className="page-panel" hidden={activePage !== 'settings'}>
-          <PlaceholderPage title="Settings" />
+          <SettingsPage
+            firstDayOfWeek={preferences.firstDayOfWeek}
+            onFirstDayOfWeekChange={handleFirstDayOfWeekChange}
+          />
         </div>
       </main>
     </div>

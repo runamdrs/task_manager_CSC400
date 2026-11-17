@@ -280,6 +280,7 @@ function DashboardPage({
   groceryPurchases,
   todayKey,
   currentHour,
+  firstDayOfWeek,
   onToggleGroceryPurchased,
   onNavigate,
   tasks,
@@ -305,8 +306,8 @@ function DashboardPage({
 
   const recipesById = useMemo(() => indexRecipes(RECIPES), []);
   const weekly = useMemo(
-    () => getWeeklyGroceries(plannedMeals, recipesById, groceryPurchases, todayKey),
-    [plannedMeals, recipesById, groceryPurchases, todayKey]
+    () => getWeeklyGroceries(plannedMeals, recipesById, groceryPurchases, todayKey, firstDayOfWeek),
+    [plannedMeals, recipesById, groceryPurchases, todayKey, firstDayOfWeek]
   );
   const todayPrep = useMemo(
     () => getTodayPrep(plannedMeals, recipesById, weekly, todayKey),
@@ -400,7 +401,7 @@ function DashboardPage({
         <div className="dashboard-right-column">
           <TodayPrepCard
             prep={todayPrep}
-            weekStart={weekly.weekStart}
+            weekStart={weekly.purchaseWeekKey}
             recipesById={recipesById}
             onToggleGroceryPurchased={onToggleGroceryPurchased}
             onNavigate={onNavigate}
