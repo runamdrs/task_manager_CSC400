@@ -2,7 +2,7 @@
 // Shared by the Dashboard now and intended for the Grocery List page.
 
 import { getPurchaseKey } from '../services/groceryStorage.js';
-import { getWeekDateKeys } from '../utils/dates.js';
+import { fromDateKey, getWeekDateKeys } from '../utils/dates.js';
 import {
   isRequirementCovered,
   normalizeIngredientName,
@@ -72,21 +72,32 @@ function getPurchaseStatus(item, record) {
   return isRequirementCovered(item.totals, record.totals) ? 'purchased' : 'needs-more';
 }
 
-/** Grocery items and progress for the Monday-Sunday week containing `dateKey`. */
-export function getWeeklyGroceries(meals, recipesById, purchases, dateKey) {
-  const weekDates = getWeekDateKeys(dateKey);
+/**
+ * Purchases are stored under the Monday of their week. Both a Sunday-start and
+ * a Monday-start week contain that same Monday, so checkmarks survive a change
+ * of the first-day-of-week preference (and match records saved before it).
+ */
+export function getPurchaseWeekKey(weekDates) {
+  return weekDates.find((dateKey) => fromDateKey(dateKey).getDay() === 1);
+}
+
+/** Grocery items and progress for the week containing `dateKey`. */
+export function getWeeklyGroceries(meals, recipesById, purchases, dateKey, firstDay) {
+  const weekDates = getWeekDateKeys(dateKey, firstDay);
   const weekStart = weekDates[0];
+  const purchaseWeekKey = getPurchaseWeekKey(weekDates);
   const weekDateSet = new Set(weekDates);
   const weekMeals = meals.filter((meal) => weekDateSet.has(meal.date));
 
   const items = buildGroceryItems(weekMeals, recipesById).map((item) => {
-    const status = getPurchaseStatus(item, purchases[getPurchaseKey(weekStart, item.key)]);
+    const status = getPurchaseStatus(item, purchases[getPurchaseKey(purchaseWeekKey, item.key)]);
     return { ...item, status };
   });
   const purchasedCount = items.filter((item) => item.status === 'purchased').length;
 
   return {
     weekStart,
+    purchaseWeekKey,
     weekEnd: weekDates[6],
     weekMeals,
     items,

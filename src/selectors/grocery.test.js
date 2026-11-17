@@ -233,3 +233,36 @@ describe('getTodayPrep', () => {
     expect(prep.groceries).toEqual([]);
   });
 });
+
+describe('getWeeklyGroceries with a first-day-of-week preference', () => {
+  const lunch = meal('a', TODAY, 'Lunch', [{ name: 'Rice', quantity: '1 cup' }]);
+  const meals = [
+    meal('sun-before', '2026-11-01', 'Lunch', [{ name: 'Old', quantity: '1' }]),
+    lunch,
+    meal('sun', '2026-11-08', 'Lunch', [{ name: 'Sun', quantity: '1' }]),
+  ];
+
+  it('uses the Sunday-Saturday week when the week starts on Sunday', () => {
+    const weekly = getWeeklyGroceries(meals, noRecipes, {}, TODAY, 'sunday');
+
+    expect(weekly.weekStart).toBe('2026-11-01');
+    expect(weekly.weekEnd).toBe('2026-11-07');
+    expect(weekly.items.map((item) => item.name)).toEqual(['Old', 'Rice']);
+  });
+
+  it('stores purchases under the same Monday for either first day', () => {
+    expect(getWeeklyGroceries(meals, noRecipes, {}, TODAY, 'sunday').purchaseWeekKey).toBe(WEEK_START);
+    expect(getWeeklyGroceries(meals, noRecipes, {}, TODAY, 'monday').purchaseWeekKey).toBe(WEEK_START);
+  });
+
+  it('keeps checkmarks when the first day of the week changes', () => {
+    const mondayWeek = getWeeklyGroceries([lunch], noRecipes, {}, TODAY, 'monday');
+    const purchases = purchase(mondayWeek.items[0]); // ticked while weeks started on Monday
+
+    const sundayWeek = getWeeklyGroceries([lunch], noRecipes, purchases, TODAY, 'sunday');
+    expect(sundayWeek.items[0].status).toBe('purchased');
+
+    const backToMonday = getWeeklyGroceries([lunch], noRecipes, purchases, TODAY, 'monday');
+    expect(backToMonday.items[0].status).toBe('purchased');
+  });
+});

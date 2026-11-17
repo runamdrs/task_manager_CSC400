@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getWeekDateKeys, getWeekdayName, toDateKey } from './dates.js';
+import { getWeekDateKeys, getWeekStartKey, getWeekdayName, shiftDateKey, toDateKey } from './dates.js';
 
 describe('toDateKey', () => {
   it('formats a local date as YYYY-MM-DD', () => {
@@ -36,5 +36,50 @@ describe('getWeekDateKeys', () => {
     const keys = getWeekDateKeys('2026-03-29');
     expect(getWeekdayName(keys[0])).toBe('Monday');
     expect(getWeekdayName(keys[6])).toBe('Sunday');
+  });
+});
+
+describe('getWeekDateKeys with a Sunday start', () => {
+  const week = [
+    '2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04',
+    '2026-11-05', '2026-11-06', '2026-11-07',
+  ];
+
+  it('runs Sunday to Saturday for a midweek date', () => {
+    expect(getWeekDateKeys('2026-11-05', 'sunday')).toEqual(week);
+  });
+
+  it('treats Sunday as the first day', () => {
+    expect(getWeekDateKeys('2026-11-01', 'sunday')).toEqual(week);
+  });
+
+  it('treats Saturday as the last day', () => {
+    expect(getWeekDateKeys('2026-11-07', 'sunday')).toEqual(week);
+  });
+
+  it('puts a Sunday in the following week compared with a Monday start', () => {
+    expect(getWeekDateKeys('2026-11-08', 'sunday')[0]).toBe('2026-11-08');
+    expect(getWeekDateKeys('2026-11-08', 'monday')[0]).toBe('2026-11-02');
+  });
+
+  it('crosses month and year boundaries', () => {
+    expect(getWeekDateKeys('2027-01-01', 'sunday')).toEqual([
+      '2026-12-27', '2026-12-28', '2026-12-29', '2026-12-30',
+      '2026-12-31', '2027-01-01', '2027-01-02',
+    ]);
+  });
+});
+
+describe('getWeekStartKey', () => {
+  it('returns the first day of the week for each preference', () => {
+    expect(getWeekStartKey('2026-11-17', 'sunday')).toBe('2026-11-15');
+    expect(getWeekStartKey('2026-11-17', 'monday')).toBe('2026-11-16');
+  });
+});
+
+describe('shiftDateKey', () => {
+  it('moves by whole weeks across a daylight-saving change', () => {
+    expect(shiftDateKey('2026-03-05', 7)).toBe('2026-03-12');
+    expect(shiftDateKey('2026-11-05', -7)).toBe('2026-10-29');
   });
 });

@@ -5,34 +5,16 @@ import {
   publishGeneratedGroceryList,
   savePlannedMeals,
 } from '../services/mealPlannerStorage.js';
+import {
+  fromDateKey,
+  getWeekDateKeys,
+  getWeekStartKey,
+  getWeekdayName,
+  shiftDateKey,
+  toDateKey,
+} from '../utils/dates.js';
 
 const MEAL_CATEGORIES = ['Breakfast', 'Lunch', 'Dinner'];
-const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-function toDateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function fromDateKey(dateKey) {
-  const [year, month, day] = dateKey.split('-').map(Number);
-  return new Date(year, month - 1, day, 12);
-}
-
-function getMonday(date) {
-  const monday = new Date(date);
-  monday.setHours(12, 0, 0, 0);
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  return monday;
-}
-
-function shiftDate(date, days) {
-  const shifted = new Date(date);
-  shifted.setDate(shifted.getDate() + days);
-  return shifted;
-}
 
 function formatWeekRange(start, end) {
   const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
@@ -50,11 +32,12 @@ function formatWeekRange(start, end) {
   return `${startMonth} ${startDay}–${endDay}, ${year}`;
 }
 
-function getWeekDates(weekStart) {
-  return WEEKDAY_NAMES.map((weekday, index) => {
-    const date = shiftDate(weekStart, index);
-    return { weekday, date, dateKey: toDateKey(date) };
-  });
+function getWeekDates(dateKey, firstDayOfWeek) {
+  return getWeekDateKeys(dateKey, firstDayOfWeek).map((weekDateKey) => ({
+    weekday: getWeekdayName(weekDateKey),
+    date: fromDateKey(weekDateKey),
+    dateKey: weekDateKey,
+  }));
 }
 
 function normalizeIngredientName(name) {
@@ -246,10 +229,13 @@ function MealCard({ meal, onEdit, onRemove }) {
   );
 }
 
-function MealPlanner({ onPlanChange }) {
+function MealPlanner({ onPlanChange, firstDayOfWeek }) {
   const [meals, setMeals] = useState([]);
   const [storageError, setStorageError] = useState('');
-  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
+  // Any date inside the viewed week. The week itself is derived from it and
+  // the first-day preference, so changing the preference re-lays out the
+  // same week immediately without touching any meal dates.
+  const [viewedDateKey, setViewedDateKey] = useState(() => toDateKey(new Date()));
   const [weekPickerOpen, setWeekPickerOpen] = useState(false);
   const [modalState, setModalState] = useState(null);
   const [mealToRemove, setMealToRemove] = useState(null);
@@ -264,7 +250,11 @@ function MealPlanner({ onPlanChange }) {
     }
   }, []);
 
-  const weekDates = useMemo(() => getWeekDates(weekStart), [weekStart]);
+  const weekDates = useMemo(
+    () => getWeekDates(viewedDateKey, firstDayOfWeek),
+    [viewedDateKey, firstDayOfWeek]
+  );
+  const weekStart = weekDates[0].date;
   const weekEnd = weekDates[6].date;
   const visibleMeals = useMemo(() => {
     const dateKeys = new Set(weekDates.map(({ dateKey }) => dateKey));
@@ -279,8 +269,8 @@ function MealPlanner({ onPlanChange }) {
   useEffect(() => {
     if (!onPlanChange) return;
 
-    const currentWeekStart = getMonday(new Date());
-    if (toDateKey(currentWeekStart) !== toDateKey(weekStart)) return;
+    const currentWeekStart = getWeekStartKey(toDateKey(new Date()), firstDayOfWeek);
+    if (currentWeekStart !== weekDates[0].dateKey) return;
 
     onPlanChange(
       weekDates.map(({ dateKey }) => {
@@ -293,7 +283,7 @@ function MealPlanner({ onPlanChange }) {
         return dayPlan;
       })
     );
-  }, [onPlanChange, visibleMeals, weekDates, weekStart]);
+  }, [onPlanChange, visibleMeals, weekDates, firstDayOfWeek]);
 
   function openAddMeal(date = toDateKey(weekStart), category = 'Breakfast') {
     setActionError('');
@@ -383,7 +373,7 @@ function MealPlanner({ onPlanChange }) {
 
   function changeWeek(dateKey) {
     if (!dateKey) return;
-    setWeekStart(getMonday(fromDateKey(dateKey)));
+    setViewedDateKey(dateKey);
     setWeekPickerOpen(false);
   }
 
@@ -413,7 +403,7 @@ function MealPlanner({ onPlanChange }) {
             type="button"
             className="mp-icon-button"
             aria-label="Previous week"
-            onClick={() => setWeekStart((current) => shiftDate(current, -7))}
+            onClick={() => setViewedDateKey((current) => shiftDateKey(current, -7))}
           >
             <Icon name="left" />
           </button>
@@ -421,7 +411,7 @@ function MealPlanner({ onPlanChange }) {
             type="button"
             className="mp-icon-button"
             aria-label="Next week"
-            onClick={() => setWeekStart((current) => shiftDate(current, 7))}
+            onClick={() => setViewedDateKey((current) => shiftDateKey(current, 7))}
           >
             <Icon name="right" />
           </button>
