@@ -1,19 +1,27 @@
 // Import React state management for the task collection and active edit state.
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
-import PlaceholderPage from './components/PlaceholderPage.jsx';
+import PlannedIngredientsPage from './components/PlannedIngredientsPage.jsx';
 import RecipesPage from './components/RecipesPage.jsx';
+import SettingsPage from './components/SettingsPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import { RECIPES } from './data/recipes.js';
+import { LanguageProvider } from './i18n/LanguageContext.jsx';
 import {
   getPurchaseKey,
   loadGroceryPurchases,
   saveGroceryPurchases,
 } from './services/groceryStorage.js';
-import { loadPlannedMeals } from './services/mealPlannerStorage.js';
+import {
+  loadPlannedMeals,
+  MEALS_STORAGE_KEY,
+  savePlannedMeals,
+} from './services/mealPlannerStorage.js';
 import { toDateKey } from './utils/dates.js';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
+import { loadLanguage, saveLanguage } from './services/languageStorage.js';
 
 // Provide starter data when the browser has no saved tasks yet.
 const SAMPLE_TASKS = [
@@ -56,12 +64,11 @@ function getInitialTasks() {
   return stored;
 }
 
-function readPlannedMeals() {
-  // The Meal Planner owns this data and reports load errors on its own page.
+function readInitialPlannedMeals() {
   try {
-    return loadPlannedMeals();
-  } catch {
-    return null;
+    return { meals: loadPlannedMeals(), error: '' };
+  } catch (error) {
+    return { meals: [], error: error.message };
   }
 }
 
@@ -95,8 +102,10 @@ function useClock() {
 
 function App() {
   const [activePage, setActivePage] = useState(getPageFromHash);
-  // Read-only view of the Meal Planner's saved meals for the Dashboard.
-  const [plannedMeals, setPlannedMeals] = useState(() => readPlannedMeals() ?? []);
+  const [plannedMealState, setPlannedMealState] = useState(readInitialPlannedMeals);
+  const { meals: plannedMeals, error: mealStorageError } = plannedMealState;
+  const [language, setLanguage] = useState(loadLanguage);
+  const [languageError, setLanguageError] = useState('');
   // Grocery purchase status; grocery items themselves are derived, not stored.
   const [groceryPurchases, setGroceryPurchases] = useState(loadGroceryPurchases);
   const { todayKey, currentHour } = useClock();
@@ -107,42 +116,84 @@ function App() {
   // Track the task currently being edited, or null while adding a task.
   const [editingTask, setEditingTask] = useState(null);
 
-  // Reload saved meals whenever the Meal Planner reports a change.
-  const refreshPlannedMeals = useCallback(() => {
-    const meals = readPlannedMeals();
-    if (meals) setPlannedMeals(meals);
-  }, []);
-
   useEffect(() => {
-    // Pick up changes saved from another browser tab.
-    function handleStorage() {
-      refreshPlannedMeals();
-      setGroceryPurchases(loadGroceryPurchases());
+    function handleStorage(event) {
+      if (event.key === null || event.key === MEALS_STORAGE_KEY) {
+        try {
+          setPlannedMealState({ meals: loadPlannedMeals(), error: '' });
+        } catch (error) {
+          setPlannedMealState({
+            meals: [],
+            error: error.message,
+          });
+        }
+      }
+      if (event.key === null || event.key === 'smartprep-grocery-purchases') {
+        setGroceryPurchases(loadGroceryPurchases());
+      }
     }
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, [refreshPlannedMeals]);
+  }, []);
 
   useEffect(() => {
-    // Follow hash changes from links and the browser's back/forward buttons.
     function handleHashChange() {
-      // Re-read meals on page change so the Dashboard never shows stale data.
-      refreshPlannedMeals();
       setActivePage(getPageFromHash());
     }
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [refreshPlannedMeals]);
+  }, []);
 
   function handleNavigate(page) {
     if (window.location.hash === `#${page}`) {
-      // Same page: no hashchange will fire, so refresh here instead.
-      refreshPlannedMeals();
       setActivePage(page);
       return;
     }
     // Adds a history entry; the hashchange listener updates the page.
     window.location.hash = page;
+  }
+
+  function handleSavePlannedMeal(mealData) {
+    const occupiedMeal = plannedMeals.find(
+      (meal) =>
+        meal.id !== mealData.id &&
+        meal.date === mealData.date &&
+        meal.category === mealData.category
+    );
+    if (occupiedMeal) return { ok: false, occupiedMeal };
+
+    const updatedMeals = mealData.id
+      ? plannedMeals.map((meal) => (meal.id === mealData.id ? mealData : meal))
+      : [...plannedMeals, { ...mealData, id: crypto.randomUUID() }];
+
+    try {
+      savePlannedMeals(updatedMeals);
+      setPlannedMealState({ meals: updatedMeals, error: '' });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  }
+
+  function handleRemovePlannedMeal(id) {
+    const updatedMeals = plannedMeals.filter((meal) => meal.id !== id);
+    try {
+      savePlannedMeals(updatedMeals);
+      setPlannedMealState({ meals: updatedMeals, error: '' });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  }
+
+  function handleLanguageChange(nextLanguage) {
+    try {
+      saveLanguage(nextLanguage);
+      setLanguage(nextLanguage);
+      setLanguageError('');
+    } catch (error) {
+      setLanguageError(error.message);
+    }
   }
 
   function handleToggleGroceryPurchased(weekStart, item) {
@@ -212,9 +263,11 @@ function App() {
     setEditingTask(null);
   }
 
-  function handleDelete(id) {
+  function handleDelete(id, confirmationText) {
     // Ask for confirmation before permanently removing a task.
-    const confirmed = window.confirm('Are you sure you want to delete this task?');
+    const confirmed = window.confirm(
+      confirmationText ?? 'Are you sure you want to delete this task?'
+    );
 
     if (!confirmed) {
       // Leave state unchanged when the user cancels the confirmation dialog.
@@ -244,9 +297,10 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar activePage={activePage} onNavigate={handleNavigate} />
-      <main className="main-content">
+    <LanguageProvider language={language}>
+      <div className="app-shell">
+        <Sidebar activePage={activePage} onNavigate={handleNavigate} />
+        <main className="main-content">
         <div className="page-panel" hidden={activePage !== 'dashboard'}>
           <DashboardPage
             plannedMeals={plannedMeals}
@@ -267,19 +321,30 @@ function App() {
           />
         </div>
         <div className="page-panel" hidden={activePage !== 'meal-planner'}>
-          <MealPlanner onPlanChange={refreshPlannedMeals} />
+          <MealPlanner
+            meals={plannedMeals}
+            recipes={RECIPES}
+            storageError={mealStorageError}
+            onSaveMeal={handleSavePlannedMeal}
+            onRemoveMeal={handleRemovePlannedMeal}
+          />
         </div>
         <div className="page-panel" hidden={activePage !== 'recipes'}>
-          <RecipesPage />
+          <RecipesPage plannedMeals={plannedMeals} />
         </div>
         <div className="page-panel" hidden={activePage !== 'grocery-list'}>
-          <PlaceholderPage title="Grocery List" />
+          <PlannedIngredientsPage plannedMeals={plannedMeals} recipes={RECIPES} />
         </div>
         <div className="page-panel" hidden={activePage !== 'settings'}>
-          <PlaceholderPage title="Settings" />
+          <SettingsPage
+            language={language}
+            languageError={languageError}
+            onLanguageChange={handleLanguageChange}
+          />
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </LanguageProvider>
   );
 }
 

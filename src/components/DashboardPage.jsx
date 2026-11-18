@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { RECIPES } from '../data/recipes.js';
+import { useTranslation } from '../i18n/useTranslation.js';
 import {
   MEAL_CATEGORIES,
   getTodayPrep,
@@ -56,11 +57,13 @@ function DashboardIcon({ name, className = '' }) {
 }
 
 function SummaryCard({ icon, label, destination, hint, summary, children, onNavigate }) {
+  const { t } = useTranslation();
+
   return (
     <button
       className="dashboard-summary-card"
       type="button"
-      aria-label={summary ? `${label}. ${summary}. ${hint}` : `${label}. ${hint}`}
+      aria-label={summary ? `${t(label)}. ${summary}. ${t(hint)}` : `${t(label)}. ${t(hint)}`}
       onClick={() => onNavigate(destination)}
     >
       <span className="dashboard-icon-wrap">
@@ -68,11 +71,11 @@ function SummaryCard({ icon, label, destination, hint, summary, children, onNavi
       </span>
       <div className="dashboard-summary-content">
         <span className="dashboard-summary-title" role="heading" aria-level="2">
-          {label}
+          {t(label)}
         </span>
         {children}
         <span className="dashboard-summary-hint">
-          {hint} <span aria-hidden="true">→</span>
+          {t(hint)} <span aria-hidden="true">→</span>
         </span>
       </div>
     </button>
@@ -80,19 +83,21 @@ function SummaryCard({ icon, label, destination, hint, summary, children, onNavi
 }
 
 function PlannedMealsCard({ meals, onNavigate }) {
+  const { t } = useTranslation();
+
   return (
     <section className="dashboard-card weekly-meal-card">
       <div className="dashboard-section-heading">
         <div>
-          <p className="dashboard-eyebrow">Meal Plan</p>
-          <h2>Coming Up This Week</h2>
+          <p className="dashboard-eyebrow">{t('Meal Plan')}</p>
+          <h2>{t('Coming Up This Week')}</h2>
         </div>
         <button
           className="dashboard-text-action"
           type="button"
           onClick={() => onNavigate('meal-planner')}
         >
-          View Full Plan <span aria-hidden="true">→</span>
+          {t('View Full Plan')} <span aria-hidden="true">→</span>
         </button>
       </div>
 
@@ -101,14 +106,14 @@ function PlannedMealsCard({ meals, onNavigate }) {
           <span className="dashboard-empty-icon">
             <DashboardIcon name="calendar" className="dashboard-icon" />
           </span>
-          <h3>No meals planned yet.</h3>
-          <p>Your weekly plan will show up here once you add a meal.</p>
+          <h3>{t('No meals planned yet.')}</h3>
+          <p>{t('Your weekly plan will show up here once you add a meal.')}</p>
           <button
             className="dashboard-button dashboard-button-secondary"
             type="button"
             onClick={() => onNavigate('meal-planner')}
           >
-            Plan Your First Meal
+            {t('Plan Your First Meal')}
           </button>
         </div>
       ) : (
@@ -121,10 +126,10 @@ function PlannedMealsCard({ meals, onNavigate }) {
               key={meal.id}
             >
               <span className="planned-meal-day">
-                {meal.isToday ? 'Today' : meal.day}
-                {meal.isPast && <span className="visually-hidden"> (past)</span>}
+                {meal.isToday ? t('Today') : meal.day}
+                {meal.isPast && <span className="visually-hidden"> ({t('past')})</span>}
               </span>
-              <span className="planned-meal-type">{meal.type}</span>
+              <span className="planned-meal-type">{t(meal.type)}</span>
               <span className="planned-meal-name">{meal.name}</span>
             </li>
           ))}
@@ -135,11 +140,13 @@ function PlannedMealsCard({ meals, onNavigate }) {
 }
 
 function GroceryProgressContent({ weekly }) {
+  const { t } = useTranslation();
+
   if (weekly.total === 0) {
     return (
       <>
-        <p className="summary-coming-soon">No groceries needed yet.</p>
-        <p className="summary-note">Add ingredients to this week&apos;s meals.</p>
+        <p className="summary-coming-soon">{t('No groceries needed yet')}</p>
+        <p className="summary-note">{t("Add ingredients to this week's meals.")}</p>
       </>
     );
   }
@@ -148,15 +155,14 @@ function GroceryProgressContent({ weekly }) {
   return (
     <>
       <p className="summary-value">{weekly.remaining}</p>
-      <p className="summary-note">
-        {weekly.remaining === 0
-          ? 'Everything is purchased'
-          : `${weekly.remaining === 1 ? 'item' : 'items'} left to buy`}
+      <p className="summary-note">{weekly.remaining === 0
+        ? t('Everything is purchased')
+        : `${weekly.remaining} ${t(weekly.remaining === 1 ? 'item' : 'items')} ${t('left to buy')}`}
       </p>
       <span
         className="grocery-progress-track"
         role="progressbar"
-        aria-label="Grocery items purchased"
+        aria-label={t('Grocery items purchased')}
         aria-valuemin={0}
         aria-valuemax={weekly.total}
         aria-valuenow={weekly.purchasedCount}
@@ -164,37 +170,39 @@ function GroceryProgressContent({ weekly }) {
         <span className="grocery-progress-fill" style={{ width: `${percent}%` }} />
       </span>
       <p className="summary-note">
-        {weekly.purchasedCount} of {weekly.total} purchased
+        {weekly.purchasedCount} {t('of')} {weekly.total} {t('purchased')}
       </p>
     </>
   );
 }
 
-function getGroceryNote(item) {
+function getGroceryNote(item, t) {
   const weeklyItem = item.weeklyItem;
   if (weeklyItem.status === 'needs-more') {
-    return `More needed: ${weeklyItem.quantity} for the week`;
+    return t('More needed: {quantity} for the week', { quantity: weeklyItem.quantity });
   }
   if (weeklyItem.quantity && weeklyItem.quantity !== item.quantity) {
-    return `${weeklyItem.quantity} needed this week`;
+    return t('{quantity} needed this week', { quantity: weeklyItem.quantity });
   }
   return '';
 }
 
 function TodayPrepCard({ prep, weekStart, recipesById, onToggleGroceryPurchased, onNavigate }) {
+  const { t } = useTranslation();
+
   return (
     <section className="dashboard-card prep-tasks-card">
       <div className="dashboard-section-heading">
         <div>
-          <p className="dashboard-eyebrow">Today</p>
-          <h2>Prep Tasks</h2>
+          <p className="dashboard-eyebrow">{t('Today')}</p>
+          <h2>{t('Prep Tasks')}</h2>
         </div>
         <button
           className="dashboard-text-action"
           type="button"
           onClick={() => onNavigate('meal-planner')}
         >
-          View Plan <span aria-hidden="true">→</span>
+          {t('View Plan')} <span aria-hidden="true">→</span>
         </button>
       </div>
 
@@ -204,24 +212,24 @@ function TodayPrepCard({ prep, weekStart, recipesById, onToggleGroceryPurchased,
             <DashboardIcon name="checklist" className="dashboard-icon" />
           </span>
           <div>
-            <h3>Nothing planned for today.</h3>
-            <p>Add a meal to today&apos;s plan to see its shopping and meals here.</p>
+            <h3>{t('Nothing planned for today.')}</h3>
+            <p>{t("Add a meal to today's plan to see its shopping and meals here.")}</p>
           </div>
         </div>
       ) : (
         <>
           <div className="today-prep-section">
-            <h3 className="today-prep-heading">Grocery Shopping</h3>
+            <h3 className="today-prep-heading">{t('Grocery Shopping')}</h3>
             {prep.groceries.length === 0 ? (
               <p className="today-prep-note">
                 {prep.ingredientCount === 0
-                  ? "Today's meals don't list any ingredients yet."
-                  : "Everything for today's meals is purchased."}
+                  ? t("Today's meals don't list any ingredients yet.")
+                  : t("Everything for today's meals is purchased.")}
               </p>
             ) : (
               <ul className="today-grocery-list">
                 {prep.groceries.map((item) => {
-                  const note = getGroceryNote(item);
+                  const note = getGroceryNote(item, t);
                   return (
                     <li key={item.key}>
                       <label className="today-grocery-item">
@@ -248,7 +256,7 @@ function TodayPrepCard({ prep, weekStart, recipesById, onToggleGroceryPurchased,
           {MEAL_CATEGORIES.filter((category) => prep.mealsByCategory[category].length > 0).map(
             (category) => (
               <div className="today-prep-section" key={category}>
-                <h3 className="today-prep-heading">{category}</h3>
+                <h3 className="today-prep-heading">{t(category)}</h3>
                 <ul className="today-meal-list">
                   {prep.mealsByCategory[category].map((meal) => (
                     <li key={meal.id}>
@@ -292,16 +300,17 @@ function DashboardPage({
   onDelete,
   onToggleComplete,
 }) {
+  const { t, language } = useTranslation();
   // The hour comes from App's once-a-minute clock so the greeting stays current.
   const hour = currentHour;
   const greeting =
     hour >= 5 && hour < 12
-      ? 'Good morning!'
+      ? t('Good morning!')
       : hour >= 12 && hour < 17
-        ? 'Good afternoon!'
+        ? t('Good afternoon!')
         : hour >= 17 && hour < 21
-          ? 'Good evening!'
-          : 'Good night!';
+          ? t('Good evening!')
+          : t('Good night!');
 
   const recipesById = useMemo(() => indexRecipes(RECIPES), []);
   const weekly = useMemo(
@@ -320,7 +329,7 @@ function DashboardPage({
     )
     .map((meal) => ({
       id: meal.id,
-      day: getWeekdayName(meal.date),
+      day: getWeekdayName(meal.date, language),
       type: meal.category,
       name: meal.name,
       // Date keys are YYYY-MM-DD, so string comparison matches date order.
@@ -329,17 +338,17 @@ function DashboardPage({
     }));
   const grocerySummary =
     weekly.total === 0
-      ? 'No groceries needed yet'
-      : `${weekly.remaining} of ${weekly.total} items left to buy`;
+      ? t('No groceries needed yet')
+      : `${weekly.remaining} ${t('of')} ${weekly.total} ${t('items')} ${t('left to buy')}`;
 
   return (
     <div className="app dashboard-page">
       <header className="dashboard-header">
         <div>
           <p className="dashboard-eyebrow">{greeting}</p>
-          <h1>Let&apos;s make this week easier.</h1>
+          <h1>{t("Let's make this week easier.")}</h1>
           <p className="dashboard-intro">
-            Plan your meals, organize your groceries, and stay on top of prep.
+            {t('Plan your meals, organize your groceries, and stay on top of prep.')}
           </p>
         </div>
         <button
@@ -348,11 +357,11 @@ function DashboardPage({
           onClick={() => onNavigate('meal-planner')}
         >
           <DashboardIcon name="calendar" className="dashboard-icon" />
-          Plan a Meal
+          {t('Plan a Meal')}
         </button>
       </header>
 
-      <section className="dashboard-summary-grid" aria-label="Weekly summary">
+      <section className="dashboard-summary-grid" aria-label={t('Weekly summary')}>
         <SummaryCard
           icon="calendar"
           label="Planned Meals"
@@ -361,7 +370,7 @@ function DashboardPage({
           onNavigate={onNavigate}
         >
           <p className="summary-value">{weekMeals.length}</p>
-          <p className="summary-note">Planned this week</p>
+          <p className="summary-note">{t('Planned this week')}</p>
         </SummaryCard>
         <SummaryCard
           icon="cart"
@@ -380,8 +389,8 @@ function DashboardPage({
           hint="Explore prep options"
           onNavigate={onNavigate}
         >
-          <p className="summary-coming-soon">Coming Soon</p>
-          <p className="summary-note">Cooking tasks will appear here.</p>
+          <p className="summary-coming-soon">{t('Coming Soon')}</p>
+          <p className="summary-note">{t('Cooking tasks will appear here.')}</p>
         </SummaryCard>
         <SummaryCard
           icon="book"
@@ -391,7 +400,7 @@ function DashboardPage({
           onNavigate={onNavigate}
         >
           <p className="summary-value">{RECIPES.length}</p>
-          <p className="summary-note">Recipes in your library</p>
+          <p className="summary-note">{t('Recipes in your library')}</p>
         </SummaryCard>
       </section>
 
@@ -409,7 +418,7 @@ function DashboardPage({
       </div>
 
       <details className="legacy-task-manager">
-        <summary>Open TaskFlow task manager</summary>
+        <summary>{t('Open TaskFlow task manager')}</summary>
         <TaskForm
           onSubmit={onSave}
           editingTask={editingTask}

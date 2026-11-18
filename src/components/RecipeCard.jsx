@@ -15,7 +15,8 @@ function MetaIcon({ children }) {
   );
 }
 
-function RecipeCard({ recipe, onView }) {
+function RecipeCard({ recipe, plannedCount = 0, onView }) {
+  const { t } = useTranslation();
   const totalMinutes = recipe.prepMinutes + recipe.cookMinutes;
   const primaryTag = recipe.tags[0];
 
@@ -35,7 +36,7 @@ function RecipeCard({ recipe, onView }) {
               <circle cx="12" cy="12" r="9" />
               <path d="M12 7v5l3 2" />
             </MetaIcon>
-            <span>{totalMinutes} min</span>
+            <span>{totalMinutes} {t('min')}</span>
           </li>
           <li>
             <MetaIcon>
@@ -44,14 +45,14 @@ function RecipeCard({ recipe, onView }) {
               <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
             </MetaIcon>
             <span>
-              {recipe.servings} serving{recipe.servings === 1 ? '' : 's'}
+              {recipe.servings} {t(recipe.servings === 1 ? 'serving' : 'servings')}
             </span>
           </li>
           <li>
             <MetaIcon>
               <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
             </MetaIcon>
-            <span>{recipe.ingredients.length} ingredients</span>
+            <span>{recipe.ingredients.length} {t('ingredients')}</span>
           </li>
         </ul>
 
@@ -61,21 +62,27 @@ function RecipeCard({ recipe, onView }) {
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </MetaIcon>
           <span>
-            {recipe.steps.length} prep step{recipe.steps.length === 1 ? '' : 's'}
+            {recipe.steps.length} {t(recipe.steps.length === 1 ? 'prep step' : 'prep steps')}
           </span>
         </p>
 
         <div className="recipe-card-actions">
           <button type="button" className="recipe-btn-secondary" onClick={() => onView(recipe.id)}>
-            View Recipe
+            {t('View Recipe')}
           </button>
-          <button type="button" className="recipe-btn-primary" disabled title="Coming soon">
-            Add to Plan
+          <button type="button" className="recipe-btn-primary" disabled title={t('Coming soon')}>
+            {t('Add to Plan')}
           </button>
         </div>
+        {plannedCount > 0 && (
+          <p className="recipe-planned-count">
+            {t('{count} planned', { count: plannedCount })}
+          </p>
+        )}
       </div>
     </article>
   );
 }
 
 export default RecipeCard;
+import { useTranslation } from '../i18n/useTranslation.js';

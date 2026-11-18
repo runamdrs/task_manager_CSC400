@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../i18n/useTranslation.js';
 
 const CATEGORIES = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -10,11 +11,14 @@ function MealFormModal({
   meal,
   initialDate,
   initialCategory,
+  recipes,
   occupiedMeal,
   onClose,
   onSave,
   onEditOccupied,
 }) {
+  const { t } = useTranslation();
+  const [recipeId, setRecipeId] = useState(meal?.recipeId ?? '');
   const [name, setName] = useState(meal?.name ?? '');
   const [date, setDate] = useState(meal?.date ?? initialDate);
   const [category, setCategory] = useState(meal?.category ?? initialCategory);
@@ -26,6 +30,7 @@ function MealFormModal({
   );
   const [image, setImage] = useState(meal?.image ?? '');
   const [error, setError] = useState('');
+  const availableRecipes = recipes ?? [];
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -50,11 +55,29 @@ function MealFormModal({
     );
   }
 
+  function handleRecipeSelection(event) {
+    const selectedId = event.target.value;
+    setRecipeId(selectedId);
+    const recipe = availableRecipes.find((item) => item.id === selectedId);
+    if (!recipe) return;
+
+    setName(recipe.title);
+    setIngredients(
+      recipe.ingredients.map((ingredient) => ({
+        name: ingredient.name,
+        quantity: ingredient.quantity ?? ingredient.amount ?? '',
+      }))
+    );
+    setPreparationTime(String(recipe.prepMinutes + recipe.cookMinutes));
+    setImage(recipe.imageUrl ?? '');
+    if (CATEGORIES.includes(recipe.mealType)) setCategory(recipe.mealType);
+  }
+
   function handleImageChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setError('Choose an image file.');
+      setError(t('Choose an image file.'));
       event.target.value = '';
       return;
     }
@@ -65,10 +88,10 @@ function MealFormModal({
         setImage(reader.result);
         setError('');
       } else {
-        setError('The selected image could not be read.');
+        setError(t('The selected image could not be read.'));
       }
     };
-    reader.onerror = () => setError('The selected image could not be read.');
+    reader.onerror = () => setError(t('The selected image could not be read.'));
     reader.readAsDataURL(file);
     event.target.value = '';
   }
@@ -80,24 +103,25 @@ function MealFormModal({
     const trimmedName = name.trim();
     const time = Number(preparationTime);
     if (!trimmedName) {
-      setError('Meal name is required.');
+      setError(t('Meal name is required.'));
       return;
     }
     if (!date) {
-      setError('Choose a calendar date.');
+      setError(t('Choose a calendar date.'));
       return;
     }
     if (!CATEGORIES.includes(category)) {
-      setError('Choose a meal category.');
+      setError(t('Choose a meal category.'));
       return;
     }
     if (preparationTime.trim() === '' || !Number.isFinite(time) || time < 0) {
-      setError('Preparation time must be a nonnegative number of minutes.');
+      setError(t('Preparation time must be a nonnegative number of minutes.'));
       return;
     }
 
     const result = onSave({
       ...(meal ? { id: meal.id } : {}),
+      recipeId: recipeId || null,
       name: trimmedName,
       date,
       category,
@@ -111,7 +135,9 @@ function MealFormModal({
       image,
     });
 
-    if (!result.ok && result.error) setError(result.error);
+    if (!result.ok && result.error) {
+      setError(t('Meal could not be saved: {error}', { error: result.error }));
+    }
   }
 
   return (
@@ -130,66 +156,83 @@ function MealFormModal({
       >
         <header className="mp-modal-header">
           <div>
-            <p className="mp-eyebrow">{meal ? 'UPDATE YOUR PLAN' : 'PLAN A MEAL'}</p>
-            <h2 id="mp-modal-title">{meal ? 'Edit Meal' : 'Add Meal'}</h2>
+            <p className="mp-eyebrow">{meal ? t('UPDATE YOUR PLAN') : t('PLAN A MEAL')}</p>
+            <h2 id="mp-modal-title">{meal ? t('Edit Meal') : t('Add Meal')}</h2>
           </div>
-          <button type="button" className="mp-icon-button" aria-label="Close dialog" onClick={onClose}>
+          <button type="button" className="mp-icon-button" aria-label={t('Close dialog')} onClick={onClose}>
             <span aria-hidden="true">×</span>
           </button>
         </header>
 
         <form className="mp-meal-form" onSubmit={handleSubmit}>
           <label className="mp-form-field">
-            <span>Meal name <span className="mp-required">*</span></span>
+            <span>{t('Choose a recipe')}</span>
+            <select value={recipeId} onChange={handleRecipeSelection}>
+              <option value="">{t('Custom meal')}</option>
+              {availableRecipes.length === 0 ? (
+                <option value="" disabled>{t('No recipes available yet')}</option>
+              ) : (
+                availableRecipes.map((recipe) => (
+                  <option value={recipe.id} key={recipe.id}>{recipe.title}</option>
+                ))
+              )}
+            </select>
+            <span className="mp-field-hint">
+              {t('Selecting a recipe fills in its name, ingredients, prep time, and image.')}
+            </span>
+          </label>
+
+          <label className="mp-form-field">
+            <span>{t('Meal name')} <span className="mp-required">*</span></span>
             <input
               autoFocus
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. Roasted vegetable bowl"
+              placeholder={t('e.g. Roasted vegetable bowl')}
               maxLength={120}
             />
           </label>
 
           <div className="mp-form-row">
             <label className="mp-form-field">
-              <span>Calendar date <span className="mp-required">*</span></span>
+              <span>{t('Calendar date')} <span className="mp-required">*</span></span>
               <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
             </label>
             <label className="mp-form-field">
-              <span>Meal category <span className="mp-required">*</span></span>
+              <span>{t('Meal category')} <span className="mp-required">*</span></span>
               <select value={category} onChange={(event) => setCategory(event.target.value)}>
-                {CATEGORIES.map((item) => <option key={item}>{item}</option>)}
+                {CATEGORIES.map((item) => <option key={item} value={item}>{t(item)}</option>)}
               </select>
             </label>
           </div>
 
           <fieldset className="mp-ingredients-fieldset">
-            <legend>Ingredients</legend>
-            <p className="mp-field-hint">Add an ingredient name and an optional quantity.</p>
+            <legend>{t('Ingredients')}</legend>
+            <p className="mp-field-hint">{t('Add an ingredient name and an optional quantity.')}</p>
             <div className="mp-ingredient-list">
               {ingredients.map((ingredient, index) => (
                 <div className="mp-ingredient-row" key={index}>
                   <input
                     type="text"
-                    aria-label={`Ingredient ${index + 1}`}
+                    aria-label={t('Ingredient {number}', { number: index + 1 })}
                     value={ingredient.name}
                     onChange={(event) => updateIngredient(index, 'name', event.target.value)}
-                    placeholder="Ingredient"
+                    placeholder={t('Ingredient')}
                     maxLength={100}
                   />
                   <input
                     type="text"
-                    aria-label={`Quantity for ingredient ${index + 1}`}
+                    aria-label={t('Quantity for ingredient {number}', { number: index + 1 })}
                     value={ingredient.quantity}
                     onChange={(event) => updateIngredient(index, 'quantity', event.target.value)}
-                    placeholder="Quantity (optional)"
+                    placeholder={t('Quantity (optional)')}
                     maxLength={40}
                   />
                   <button
                     type="button"
                     className="mp-remove-ingredient"
-                    aria-label={`Remove ingredient ${index + 1}`}
+                    aria-label={t('Remove ingredient {number}', { number: index + 1 })}
                     onClick={() => setIngredients((current) => current.filter((_, itemIndex) => itemIndex !== index))}
                   >
                     ×
@@ -198,13 +241,13 @@ function MealFormModal({
               ))}
             </div>
             <button type="button" className="mp-add-ingredient" onClick={() => setIngredients((current) => [...current, createIngredient()])}>
-              <span aria-hidden="true">+</span> Add ingredient
+              <span aria-hidden="true">+</span> {t('Add ingredient')}
             </button>
           </fieldset>
 
           <div className="mp-form-row">
             <label className="mp-form-field">
-              <span>Preparation time <span className="mp-required">*</span></span>
+              <span>{t('Preparation time')} <span className="mp-required">*</span></span>
               <div className="mp-number-suffix">
                 <input
                   type="number"
@@ -214,20 +257,20 @@ function MealFormModal({
                   onChange={(event) => setPreparationTime(event.target.value)}
                   placeholder="30"
                 />
-                <span>min</span>
+                <span>{t('min')}</span>
               </div>
             </label>
             <label className="mp-form-field">
-              <span>Food image <span className="mp-field-hint-inline">(optional)</span></span>
+              <span>{t('Food image')} <span className="mp-field-hint-inline">{t('(optional)')}</span></span>
               <input type="file" accept="image/*" onChange={handleImageChange} />
             </label>
           </div>
 
           {image && (
             <div className="mp-image-preview">
-              <img src={image} alt="Meal preview" />
+              <img src={image} alt={t('Meal preview')} />
               <button type="button" className="mp-remove-image" onClick={() => setImage('')}>
-                Remove image
+                {t('Remove image')}
               </button>
             </div>
           )}
@@ -235,11 +278,14 @@ function MealFormModal({
           {occupiedMeal && (
             <div className="mp-slot-conflict" role="alert">
               <p>
-                {occupiedMeal.category} on {occupiedMeal.date} already contains “{occupiedMeal.name}”.
-                Edit the existing meal or choose another slot.
+                {t('{category} on {date} already contains “{name}”. Edit the existing meal or choose another slot.', {
+                  category: t(occupiedMeal.category),
+                  date: occupiedMeal.date,
+                  name: occupiedMeal.name,
+                })}
               </p>
               <button type="button" onClick={() => onEditOccupied(occupiedMeal)}>
-                Edit existing meal
+                {t('Edit existing meal')}
               </button>
             </div>
           )}
@@ -247,10 +293,10 @@ function MealFormModal({
 
           <div className="mp-modal-actions">
             <button type="button" className="mp-button mp-button-secondary" onClick={onClose}>
-              Cancel
+              {t('Cancel')}
             </button>
             <button type="submit" className="mp-button mp-button-primary">
-              {meal ? 'Save Changes' : 'Save Meal'}
+              {meal ? t('Save Changes') : t('Save Meal')}
             </button>
           </div>
         </form>

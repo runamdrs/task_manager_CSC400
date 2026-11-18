@@ -25,6 +25,6 @@ export function getWeekDateKeys(dateKey) {
   });
 }
 
-export function getWeekdayName(dateKey) {
-  return fromDateKey(dateKey).toLocaleDateString('en-US', { weekday: 'long' });
+export function getWeekdayName(dateKey, locale = 'en-US') {
+  return fromDateKey(dateKey).toLocaleDateString(locale, { weekday: 'long' });
 }
