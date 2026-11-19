@@ -6,10 +6,10 @@
 /* Set the page-wide typography, spacing, and neutral color palette. */
 body {
   margin: 0;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: Arial, Helvetica, sans-serif;
   line-height: 1.5;
-  color: #222;
-  background: #f5f5f5;
+  color: #26362e;
+  background: #f7f7f1;
 }
 
 /* Keep navigation fixed while page content scrolls independently. */
@@ -31,7 +31,7 @@ body {
 
 .brand {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 9px;
   color: inherit;
   text-decoration: none;
@@ -39,12 +39,13 @@ body {
 
 .brand-mark {
   display: grid;
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
   place-items: center;
   border-radius: 11px;
-  background: transparent;
+  padding: 3px;
+  background: #edf4eb;
 }
 
 .brand-logo {
@@ -2840,5 +2841,120 @@ button {
   .grocery-actions {
     grid-column: 2;
     justify-content: flex-start;
+  }
+}
+
+/* Keep page typography and surfaces consistent with the Dashboard. */
+body,
+.app.meal-planner-page,
+.app.recipes-page,
+.app.settings-page,
+.grocery-page {
+  color: #26362e;
+  background-color: #f7f7f1;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.main-content {
+  background: #f7f7f1;
+}
+
+.app.meal-planner-page,
+.app.recipes-page,
+.app.settings-page,
+.grocery-page {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  padding: 34px clamp(22px, 4vw, 58px) 48px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.mp-page-title,
+.recipes-header-copy h1,
+.settings-title,
+.grocery-header h1,
+.recipe-detail-summary h1 {
+  color: #203b2e;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(30px, 3vw, 42px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.mp-eyebrow,
+.eyebrow,
+.grocery-label {
+  color: #66836d;
+}
+
+.mp-subtitle,
+.recipes-header-copy > p:last-child,
+.settings-subtitle,
+.grocery-description,
+.recipe-detail-description {
+  color: #70796f;
+}
+
+.settings-card-title,
+.section-header h2,
+.recipe-section-heading-row h2 {
+  color: #2b3d31;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.shopping-progress {
+  border: 1px solid #e8e9e1;
+  color: #26362e;
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(34 55 38 / 3%);
+}
+
+.progress-label {
+  color: #66836d;
+}
+
+.progress-top h2,
+.progress-top h3 {
+  color: #2b3d31;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.progress-numbers span {
+  color: #858b82;
+}
+
+.progress-numbers strong {
+  color: #234a35;
+}
+
+.progress-bar {
+  background: #e6ebe2;
+}
+
+.progress-fill {
+  background: #477354;
+}
+
+.grocery-section {
+  border-color: #e8e9e1;
+  box-shadow: 0 4px 14px rgb(34 55 38 / 3%);
+}
+
+@media (max-width: 680px) {
+  .app.meal-planner-page,
+  .app.recipes-page,
+  .app.settings-page,
+  .grocery-page {
+    min-height: auto;
+    padding: 25px 16px 36px;
   }
 }
