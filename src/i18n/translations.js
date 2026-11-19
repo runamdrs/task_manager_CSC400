@@ -28,6 +28,38 @@ const translations = {
     'Planned this week': 'Planificadas esta semana',
     'Grocery Progress': 'Progreso de compras',
     'Open grocery list': 'Abrir lista de compras',
+    'SMART GROCERY LIST': 'LISTA INTELIGENTE DE COMPRAS',
+    'Keep track of the items you need to buy.':
+      'Haz seguimiento de los productos que necesitas comprar.',
+    'Remove all purchased items?': '¿Quitar todos los productos comprados?',
+    'Clear Purchased': 'Quitar comprados',
+    'Add Item': 'Añadir producto',
+    'Recipe generation will be connected to the Meal Planner later.':
+      'La generación de recetas se conectará al planificador de comidas más adelante.',
+    'Regenerate from Plan': 'Volver a generar desde el plan',
+    'SHOPPING PROGRESS': 'PROGRESO DE COMPRAS',
+    '{purchased} of {total} items purchased':
+      '{purchased} de {total} productos comprados',
+    Purchased: 'Comprado',
+    Remaining: 'Pendientes',
+    'Shop smarter with one organized list.':
+      'Compra mejor con una lista organizada.',
+    'Add your grocery items here. Later, planned recipes will automatically add their ingredients and combine duplicate items.':
+      'Añade aquí los productos que necesitas. Más adelante, las recetas planificadas añadirán sus ingredientes y combinarán los productos repetidos.',
+    'Grocery Items': 'Productos de la compra',
+    'Your grocery list is empty': 'Tu lista de compras está vacía',
+    'Add your first grocery item to get started.':
+      'Añade tu primer producto para empezar.',
+    'Mark as not purchased': 'Marcar como no comprado',
+    'Mark as purchased': 'Marcar como comprado',
+    'To Buy': 'Por comprar',
+    Undo: 'Deshacer',
+    'Planned Recipes': 'Recetas planificadas',
+    'Recipe ingredients will appear here when the Meal Planner is connected.':
+      'Cuando se conecte el planificador de comidas, aquí aparecerán los ingredientes de las recetas.',
+    'Coming later': 'Próximamente',
+    'Enter grocery item:': 'Escribe un producto:',
+    'Enter quantity:': 'Escribe una cantidad:',
     'No groceries needed yet': 'Aún no necesitas comprar nada',
     "Add ingredients to this week's meals.": 'Añade ingredientes a las comidas de esta semana.',
     'Everything is purchased': 'Ya compraste todo',
@@ -177,6 +209,11 @@ const translations = {
     '03 — Recipe Library': '03 — BIBLIOTECA DE RECETAS',
     'Find something delicious to make.': 'Encuentra algo delicioso para cocinar.',
     'Add Recipe': 'Añadir receta',
+    'Select recipe': 'Elegir receta',
+    'Cancel selection': 'Cancelar selección',
+    'Select a recipe for your meal. It will be added to the selected day and meal category.':
+      'Elige una receta para tu comida. Se añadirá al día y tipo de comida seleccionados.',
+    'Selected recipe could not be found.': 'No se encontró la receta seleccionada.',
     'Search and filter recipes': 'Buscar y filtrar recetas',
     'Search recipes': 'Buscar recetas',
     'Search recipes or ingredients...': 'Buscar recetas o ingredientes...',
@@ -266,6 +303,38 @@ const translations = {
     'Planned this week': 'Diese Woche geplant',
     'Grocery Progress': 'Einkaufsfortschritt',
     'Open grocery list': 'Einkaufsliste öffnen',
+    'SMART GROCERY LIST': 'INTELLIGENTE EINKAUFSLISTE',
+    'Keep track of the items you need to buy.':
+      'Behalte die Artikel im Blick, die du einkaufen musst.',
+    'Remove all purchased items?': 'Alle gekauften Artikel entfernen?',
+    'Clear Purchased': 'Gekaufte entfernen',
+    'Add Item': 'Artikel hinzufügen',
+    'Recipe generation will be connected to the Meal Planner later.':
+      'Die Rezeptgenerierung wird später mit dem Essensplaner verbunden.',
+    'Regenerate from Plan': 'Aus Plan neu erstellen',
+    'SHOPPING PROGRESS': 'EINKAUFSFORTSCHRITT',
+    '{purchased} of {total} items purchased':
+      '{purchased} von {total} Artikeln eingekauft',
+    Purchased: 'Eingekauft',
+    Remaining: 'Übrig',
+    'Shop smarter with one organized list.':
+      'Kaufe mit einer übersichtlichen Liste cleverer ein.',
+    'Add your grocery items here. Later, planned recipes will automatically add their ingredients and combine duplicate items.':
+      'Füge hier deine Einkaufsartikel hinzu. Später ergänzen geplante Rezepte automatisch ihre Zutaten und fassen doppelte Artikel zusammen.',
+    'Grocery Items': 'Einkaufsartikel',
+    'Your grocery list is empty': 'Deine Einkaufsliste ist leer',
+    'Add your first grocery item to get started.':
+      'Füge deinen ersten Einkaufsartikel hinzu.',
+    'Mark as not purchased': 'Als nicht eingekauft markieren',
+    'Mark as purchased': 'Als eingekauft markieren',
+    'To Buy': 'Noch zu kaufen',
+    Undo: 'Rückgängig',
+    'Planned Recipes': 'Geplante Rezepte',
+    'Recipe ingredients will appear here when the Meal Planner is connected.':
+      'Hier werden die Rezeptzutaten angezeigt, sobald der Essensplaner verbunden ist.',
+    'Coming later': 'Demnächst',
+    'Enter grocery item:': 'Einkaufsartikel eingeben:',
+    'Enter quantity:': 'Menge eingeben:',
     'No groceries needed yet': 'Noch keine Einkäufe nötig',
     "Add ingredients to this week's meals.": 'Füge Zutaten zu den Mahlzeiten dieser Woche hinzu.',
     'Everything is purchased': 'Alles ist eingekauft',
@@ -414,6 +483,12 @@ const translations = {
     '03 — Recipe Library': '03 — REZEPTSAMMLUNG',
     'Find something delicious to make.': 'Finde etwas Leckeres zum Kochen.',
     'Add Recipe': 'Rezept hinzufügen',
+    'Select recipe': 'Rezept auswählen',
+    'Cancel selection': 'Auswahl abbrechen',
+    'Select a recipe for your meal. It will be added to the selected day and meal category.':
+      'Wähle ein Rezept für deine Mahlzeit. Es wird dem ausgewählten Tag und der Mahlzeitenkategorie hinzugefügt.',
+    'Selected recipe could not be found.':
+      'Das ausgewählte Rezept wurde nicht gefunden.',
     'Search and filter recipes': 'Rezepte suchen und filtern',
     'Search recipes': 'Rezepte suchen',
     'Search recipes or ingredients...': 'Rezepte oder Zutaten suchen ...',

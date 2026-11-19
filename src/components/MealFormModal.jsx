@@ -13,9 +13,11 @@ function MealFormModal({
   initialCategory,
   recipes,
   occupiedMeal,
+  selectionError,
   onClose,
   onSave,
   onEditOccupied,
+  onBrowseRecipes,
 }) {
   const { t } = useTranslation();
   const [recipeId, setRecipeId] = useState(meal?.recipeId ?? '');
@@ -70,7 +72,6 @@ function MealFormModal({
     );
     setPreparationTime(String(recipe.prepMinutes + recipe.cookMinutes));
     setImage(recipe.imageUrl ?? '');
-    if (CATEGORIES.includes(recipe.mealType)) setCategory(recipe.mealType);
   }
 
   function handleImageChange(event) {
@@ -289,9 +290,21 @@ function MealFormModal({
               </button>
             </div>
           )}
+          {selectionError && (
+            <p className="mp-error" role="alert">
+              {t(selectionError.key, selectionError.values)}
+            </p>
+          )}
           {error && <p className="mp-error" role="alert">{error}</p>}
 
           <div className="mp-modal-actions">
+            <button
+              type="button"
+              className="mp-button mp-button-secondary"
+              onClick={() => onBrowseRecipes({ date, category })}
+            >
+              {t('Browse recipes')}
+            </button>
             <button type="button" className="mp-button mp-button-secondary" onClick={onClose}>
               {t('Cancel')}
             </button>

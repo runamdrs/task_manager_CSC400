@@ -52,7 +52,12 @@ function filterAndSortRecipes(recipes, filters) {
   return results;
 }
 
-function RecipesPage({ plannedMeals }) {
+function RecipesPage({
+  plannedMeals,
+  recipeSelectionMode = false,
+  onChooseRecipe,
+  onCancelRecipeSelection,
+}) {
   const { t } = useTranslation();
   const [selectedRecipeId, setSelectedRecipeId] = useState(null);
   const [search, setSearch] = useState('');
@@ -83,6 +88,12 @@ function RecipesPage({ plannedMeals }) {
       <RecipeDetail
         recipe={selectedRecipe}
         onBack={() => setSelectedRecipeId(null)}
+        selectionMode={recipeSelectionMode}
+        onChooseRecipe={(recipeId) => {
+          setSelectedRecipeId(null);
+          onChooseRecipe(recipeId);
+        }}
+        onCancelRecipeSelection={onCancelRecipeSelection}
       />
     );
   }
@@ -95,9 +106,22 @@ function RecipesPage({ plannedMeals }) {
           <h1>{t('Recipes')}</h1>
           <p>{t('Find something delicious to make.')}</p>
         </div>
-        <button type="button" className="recipe-add-btn" disabled title={t('Coming soon')}>
-          + {t('Add Recipe')}
-        </button>
+        {recipeSelectionMode ? (
+          <div className="recipe-selection-actions">
+            <p>{t('Select a recipe for your meal. It will be added to the selected day and meal category.')}</p>
+            <button
+              type="button"
+              className="recipe-add-btn"
+              onClick={onCancelRecipeSelection}
+            >
+              {t('Cancel selection')}
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="recipe-add-btn" disabled title={t('Coming soon')}>
+            + {t('Add Recipe')}
+          </button>
+        )}
       </header>
 
       <section className="recipe-filters" aria-label={t('Search and filter recipes')}>
@@ -196,8 +220,10 @@ function RecipesPage({ plannedMeals }) {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
+              selectionMode={recipeSelectionMode}
               plannedCount={plannedMeals.filter((meal) => meal.recipeId === recipe.id).length}
               onView={setSelectedRecipeId}
+              onChooseRecipe={onChooseRecipe}
             />
           ))}
         </div>

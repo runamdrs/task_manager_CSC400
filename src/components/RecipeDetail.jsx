@@ -76,7 +76,13 @@ function StatIcon({ children }) {
   );
 }
 
-function RecipeDetail({ recipe, onBack }) {
+function RecipeDetail({
+  recipe,
+  onBack,
+  selectionMode = false,
+  onChooseRecipe,
+  onCancelRecipeSelection,
+}) {
   const { t } = useTranslation();
   const totalMinutes = recipe.prepMinutes + recipe.cookMinutes;
   const [checkedIngredients, setCheckedIngredients] = useState(() =>
@@ -111,6 +117,15 @@ function RecipeDetail({ recipe, onBack }) {
       <button type="button" className="recipe-back-link" onClick={onBack}>
         {t('← Back to Recipes')}
       </button>
+      {selectionMode && (
+        <button
+          type="button"
+          className="recipe-cancel-selection"
+          onClick={onCancelRecipeSelection}
+        >
+          {t('Cancel selection')}
+        </button>
+      )}
 
       <section className="recipe-detail-hero">
         <div className="recipe-detail-image">
@@ -122,7 +137,7 @@ function RecipeDetail({ recipe, onBack }) {
           <div className="recipe-detail-tags">
             {recipe.tags.map((tag) => (
               <span className="recipe-tag recipe-tag-inline" key={tag}>
-                {tag}
+                {t(tag)}
               </span>
             ))}
           </div>
@@ -172,9 +187,19 @@ function RecipeDetail({ recipe, onBack }) {
             </div>
           </dl>
 
-          <button type="button" className="recipe-btn-primary recipe-add-to-plan" disabled title={t('Coming soon')}>
-            {t('Add to Meal Plan')}
-          </button>
+          {selectionMode ? (
+            <button
+              type="button"
+              className="recipe-btn-primary recipe-add-to-plan"
+              onClick={() => onChooseRecipe(recipe.id)}
+            >
+              {t('Select recipe')}
+            </button>
+          ) : (
+            <button type="button" className="recipe-btn-primary recipe-add-to-plan" disabled title={t('Coming soon')}>
+              {t('Add to Meal Plan')}
+            </button>
+          )}
         </div>
       </section>
 
