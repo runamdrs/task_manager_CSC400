@@ -36,6 +36,6 @@ export function getWeekDateKeys(dateKey, firstDay = 'monday') {
   return Array.from({ length: 7 }, (_, index) => shiftDateKey(weekStart, index));
 }
 
-export function getWeekdayName(dateKey) {
-  return fromDateKey(dateKey).toLocaleDateString('en-US', { weekday: 'long' });
+export function getWeekdayName(dateKey, locale = 'en-US') {
+  return fromDateKey(dateKey).toLocaleDateString(locale, { weekday: 'long' });
 }

@@ -1,24 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MealFormModal from './MealFormModal.jsx';
-import {
-  loadPlannedMeals,
-  publishGeneratedGroceryList,
-  savePlannedMeals,
-} from '../services/mealPlannerStorage.js';
 import {
   fromDateKey,
   getWeekDateKeys,
-  getWeekStartKey,
-  getWeekdayName,
   shiftDateKey,
   toDateKey,
 } from '../utils/dates.js';
+import { LOCALES } from '../i18n/translations.js';
+import { useTranslation } from '../i18n/useTranslation.js';
+import { createMealFromRecipe } from '../utils/recipeMeal.js';
 
 const MEAL_CATEGORIES = ['Breakfast', 'Lunch', 'Dinner'];
 
-function formatWeekRange(start, end) {
-  const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
-  const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
+function formatWeekRange(start, end, locale) {
+  const startMonth = start.toLocaleDateString(locale, { month: 'long' });
+  const endMonth = end.toLocaleDateString(locale, { month: 'long' });
   const startDay = start.getDate();
   const endDay = end.getDate();
   const year = end.getFullYear();
@@ -32,129 +28,12 @@ function formatWeekRange(start, end) {
   return `${startMonth} ${startDay}–${endDay}, ${year}`;
 }
 
-function getWeekDates(dateKey, firstDayOfWeek) {
+function getWeekDates(dateKey, firstDayOfWeek, locale) {
   return getWeekDateKeys(dateKey, firstDayOfWeek).map((weekDateKey) => ({
-    weekday: getWeekdayName(weekDateKey),
+    weekday: fromDateKey(weekDateKey).toLocaleDateString(locale, { weekday: 'long' }),
     date: fromDateKey(weekDateKey),
     dateKey: weekDateKey,
   }));
-}
-
-function normalizeIngredientName(name) {
-  return name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
-}
-
-const UNIT_ALIASES = {
-  tsp: ['tsp', 'teaspoon', 'teaspoons'],
-  tbsp: ['tbsp', 'tablespoon', 'tablespoons'],
-  cup: ['c', 'cup', 'cups'],
-  ml: ['ml', 'milliliter', 'milliliters', 'millilitre', 'millilitres'],
-  l: ['l', 'liter', 'liters', 'litre', 'litres'],
-  g: ['g', 'gram', 'grams'],
-  kg: ['kg', 'kilogram', 'kilograms'],
-  oz: ['oz', 'ounce', 'ounces'],
-  lb: ['lb', 'lbs', 'pound', 'pounds'],
-  each: ['each', 'item', 'items', 'piece', 'pieces'],
-  clove: ['clove', 'cloves'],
-  pinch: ['pinch', 'pinches'],
-  can: ['can', 'cans'],
-  package: ['package', 'packages', 'pkg', 'pkgs'],
-};
-
-const UNIT_FACTORS = {
-  tsp: { group: 'volume', factor: 4.92892, label: 'mL' },
-  tbsp: { group: 'volume', factor: 14.7868, label: 'mL' },
-  cup: { group: 'volume', factor: 236.588, label: 'mL' },
-  ml: { group: 'volume', factor: 1, label: 'mL' },
-  l: { group: 'volume', factor: 1000, label: 'mL' },
-  g: { group: 'weight', factor: 1, label: 'g' },
-  kg: { group: 'weight', factor: 1000, label: 'g' },
-  oz: { group: 'weight', factor: 28.3495, label: 'g' },
-  lb: { group: 'weight', factor: 453.592, label: 'g' },
-  each: { group: 'count', factor: 1, label: 'each' },
-  '': { group: 'count', factor: 1, label: 'each' },
-};
-
-function normalizeUnit(unit) {
-  const normalized = unit.toLocaleLowerCase().replace(/\.$/, '');
-  return Object.entries(UNIT_ALIASES).find(([, aliases]) =>
-    aliases.includes(normalized)
-  )?.[0] ?? normalized;
-}
-
-function parseQuantity(quantity) {
-  const match = quantity.trim().match(/^((?:\d+\s*\/\s*\d+)|(?:\d+(?:\.\d+)?))\s*(.*)$/);
-  if (!match) return null;
-
-  const amountText = match[1].replace(/\s/g, '');
-  const [numerator, denominator] = amountText.split('/');
-  const amount = denominator
-    ? Number(numerator) / Number(denominator)
-    : Number(amountText);
-  if (!Number.isFinite(amount)) return null;
-
-  const unit = normalizeUnit(match[2].trim());
-  return { amount, unit };
-}
-
-function formatAmount(amount) {
-  return Number(amount.toFixed(2)).toString();
-}
-
-function aggregateIngredients(meals) {
-  const grouped = new Map();
-
-  meals.forEach((meal) => {
-    meal.ingredients.forEach((ingredient) => {
-      const name = ingredient.name.trim();
-      if (!name) return;
-
-      const nameKey = normalizeIngredientName(name);
-      if (!grouped.has(nameKey)) {
-        grouped.set(nameKey, { name, quantities: new Map(), unspecified: 0 });
-      }
-
-      const aggregate = grouped.get(nameKey);
-      const quantity = ingredient.quantity.trim();
-      if (!quantity) {
-        aggregate.unspecified += 1;
-        return;
-      }
-
-      const parsed = parseQuantity(quantity);
-      if (!parsed) {
-        aggregate.quantities.set(
-          `raw:${quantity.toLocaleLowerCase()}`,
-          { amount: null, display: quantity }
-        );
-        return;
-      }
-
-      const unitInfo = UNIT_FACTORS[parsed.unit];
-      const group = unitInfo?.group ?? `unit:${parsed.unit}`;
-      const key = group.startsWith('unit:') ? `${group}:${parsed.unit}` : group;
-      const convertedAmount = unitInfo ? parsed.amount * unitInfo.factor : parsed.amount;
-      const existing = aggregate.quantities.get(key);
-      aggregate.quantities.set(key, {
-        amount: (existing?.amount ?? 0) + convertedAmount,
-        label: unitInfo?.label ?? parsed.unit,
-        isUnitless: !parsed.unit,
-      });
-    });
-  });
-
-  return [...grouped.values()].map(({ name, quantities, unspecified }) => {
-    const quantityParts = [...quantities.values()].map((quantity) => {
-      if (quantity.amount === null) return quantity.display;
-      const amount = formatAmount(quantity.amount);
-      return quantity.label ? `${amount} ${quantity.label}` : amount;
-    });
-    if (unspecified) quantityParts.push('quantity unspecified');
-    return {
-      name,
-      quantity: quantityParts.join(' + '),
-    };
-  });
 }
 
 function Icon({ name, size = 18 }) {
@@ -188,9 +67,6 @@ function Icon({ name, size = 18 }) {
   if (name === 'right') {
     return <svg {...common}><path d="m9 18 6-6-6-6" /></svg>;
   }
-  if (name === 'close') {
-    return <svg {...common}><path d="m18 6-12 12M6 6l12 12" /></svg>;
-  }
   if (name === 'food') {
     return <svg {...common}><path d="M4 13h16a8 8 0 0 1-16 0Z" /><path d="M12 5v3M7 7l2 2M17 7l-2 2" /></svg>;
   }
@@ -201,6 +77,8 @@ function Icon({ name, size = 18 }) {
 }
 
 function MealCard({ meal, onEdit, onRemove }) {
+  const { t } = useTranslation();
+
   return (
     <article className="mp-meal-card">
       {meal.image ? (
@@ -213,46 +91,46 @@ function MealCard({ meal, onEdit, onRemove }) {
       <h4 className="mp-meal-name">{meal.name}</h4>
       <p className="mp-meal-time">
         <Icon name="clock" size={14} />
-        <span>{meal.preparationTime} min</span>
+        <span>{meal.preparationTime} {t('min')}</span>
       </p>
       <div className="mp-meal-actions">
         <button type="button" className="mp-edit-button" onClick={() => onEdit(meal)}>
           <Icon name="edit" size={13} />
-          Edit
+          {t('Edit')}
         </button>
         <button type="button" className="mp-remove-button" onClick={() => onRemove(meal)}>
           <Icon name="remove" size={13} />
-          Remove
+          {t('Remove')}
         </button>
       </div>
     </article>
   );
 }
 
-function MealPlanner({ onPlanChange, firstDayOfWeek }) {
-  const [meals, setMeals] = useState([]);
-  const [storageError, setStorageError] = useState('');
-  // Any date inside the viewed week. The week itself is derived from it and
-  // the first-day preference, so changing the preference re-lays out the
-  // same week immediately without touching any meal dates.
+function MealPlanner({
+  meals,
+  recipes,
+  storageError,
+  onSaveMeal,
+  onRemoveMeal,
+  firstDayOfWeek,
+  onBrowseRecipes,
+  recipeSelection,
+  onRecipeApplied,
+  onNavigate,
+}) {
+  const { t, language } = useTranslation();
+  const locale = LOCALES[language] ?? LOCALES.en;
   const [viewedDateKey, setViewedDateKey] = useState(() => toDateKey(new Date()));
   const [weekPickerOpen, setWeekPickerOpen] = useState(false);
   const [modalState, setModalState] = useState(null);
   const [mealToRemove, setMealToRemove] = useState(null);
-  const [generatedList, setGeneratedList] = useState(null);
   const [actionError, setActionError] = useState('');
-
-  useEffect(() => {
-    try {
-      setMeals(loadPlannedMeals());
-    } catch (error) {
-      setStorageError(`Saved meals could not be loaded: ${error.message}`);
-    }
-  }, []);
+  const appliedRecipeRequest = useRef(null);
 
   const weekDates = useMemo(
-    () => getWeekDates(viewedDateKey, firstDayOfWeek),
-    [viewedDateKey, firstDayOfWeek]
+    () => getWeekDates(viewedDateKey, firstDayOfWeek, locale),
+    [viewedDateKey, firstDayOfWeek, locale]
   );
   const weekStart = weekDates[0].date;
   const weekEnd = weekDates[6].date;
@@ -265,25 +143,6 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
     visibleMeals.forEach((meal) => slots.set(`${meal.date}:${meal.category}`, meal));
     return slots;
   }, [visibleMeals]);
-
-  useEffect(() => {
-    if (!onPlanChange) return;
-
-    const currentWeekStart = getWeekStartKey(toDateKey(new Date()), firstDayOfWeek);
-    if (currentWeekStart !== weekDates[0].dateKey) return;
-
-    onPlanChange(
-      weekDates.map(({ dateKey }) => {
-        const dayPlan = { Breakfast: '', Lunch: '', Dinner: '' };
-        visibleMeals
-          .filter((meal) => meal.date === dateKey)
-          .forEach((meal) => {
-            dayPlan[meal.category] = meal.name;
-          });
-        return dayPlan;
-      })
-    );
-  }, [onPlanChange, visibleMeals, weekDates, firstDayOfWeek]);
 
   function openAddMeal(date = toDateKey(weekStart), category = 'Breakfast') {
     setActionError('');
@@ -305,7 +164,7 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
     });
   }
 
-  function handleSaveMeal(mealData) {
+  const handleSaveMeal = useCallback((mealData, { keepOpen = false } = {}) => {
     const occupiedMeal = meals.find(
       (meal) =>
         meal.id !== mealData.id &&
@@ -314,60 +173,114 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
     );
 
     if (occupiedMeal) {
-      setModalState((current) => ({ ...current, occupiedMeal }));
+      setModalState((current) =>
+        current ? { ...current, occupiedMeal } : current
+      );
       return { ok: false, occupiedMeal };
     }
 
-    const updatedMeals = mealData.id
-      ? meals.map((meal) => meal.id === mealData.id ? mealData : meal)
-      : [...meals, { ...mealData, id: crypto.randomUUID() }];
-
-    try {
-      savePlannedMeals(updatedMeals);
-      setMeals(updatedMeals);
-      setActionError('');
-      setModalState(null);
-      return { ok: true };
-    } catch (error) {
-      const message = `Meal could not be saved: ${error.message}`;
-      setActionError(message);
-      return { ok: false, error: message };
+    const result = onSaveMeal(mealData);
+    if (!result.ok && result.occupiedMeal) {
+      setModalState((current) =>
+        current ? { ...current, occupiedMeal: result.occupiedMeal } : current
+      );
+      return result;
     }
+    if (result.ok) {
+      setActionError('');
+      setModalState((current) => {
+        if (!keepOpen || !current) return null;
+        return {
+          ...current,
+          meal: result.meal ?? mealData,
+          initialDate: mealData.date,
+          initialCategory: mealData.category,
+          occupiedMeal: null,
+          selectionError: null,
+        };
+      });
+    }
+    return result;
+  }, [meals, onSaveMeal]);
+
+  function handleBrowseRecipes({ date, category }) {
+    setActionError('');
+    setModalState((current) =>
+      current
+        ? {
+            ...current,
+            selectionDate: date,
+            selectionCategory: category,
+            selectionError: null,
+          }
+        : current
+    );
+    onBrowseRecipes();
   }
+
+  useEffect(() => {
+    if (
+      !recipeSelection ||
+      appliedRecipeRequest.current === recipeSelection.requestId
+    ) {
+      return;
+    }
+
+    appliedRecipeRequest.current = recipeSelection.requestId;
+    const recipe = recipes.find((item) => item.id === recipeSelection.recipeId);
+    if (!recipe || !modalState) {
+      setModalState((current) =>
+        current
+          ? {
+              ...current,
+              selectionError: { key: 'Selected recipe could not be found.' },
+            }
+          : current
+      );
+      onRecipeApplied(recipeSelection.requestId);
+      return;
+    }
+
+    const mealData = createMealFromRecipe(
+      recipe,
+      modalState.selectionDate ?? modalState.meal?.date ?? modalState.initialDate,
+      modalState.selectionCategory ?? modalState.meal?.category ?? modalState.initialCategory,
+      modalState.meal?.id
+    );
+    const result = handleSaveMeal(mealData, { keepOpen: true });
+    if (!result.ok && result.error) {
+      setModalState((current) =>
+        current
+          ? {
+              ...current,
+              selectionError: {
+                key: 'Meal could not be saved: {error}',
+                values: { error: result.error },
+              },
+            }
+          : current
+      );
+    }
+    onRecipeApplied(recipeSelection.requestId);
+  }, [
+    handleSaveMeal,
+    modalState,
+    onRecipeApplied,
+    recipeSelection,
+    recipes,
+  ]);
 
   function handleRemoveMeal(meal) {
     setMealToRemove(meal);
   }
 
   function confirmRemoveMeal() {
-    const updatedMeals = meals.filter(
-      (savedMeal) => savedMeal.id !== mealToRemove.id
-    );
-    try {
-      savePlannedMeals(updatedMeals);
-      setMeals(updatedMeals);
+    const result = onRemoveMeal(mealToRemove.id);
+    if (result.ok) {
       setActionError('');
       setMealToRemove(null);
-    } catch (error) {
-      setActionError(`Meal could not be removed: ${error.message}`);
-      setMealToRemove(null);
-    }
-  }
-
-  function handleGenerateGroceries() {
-    const groceryList = {
-      weekStart: toDateKey(weekStart),
-      weekEnd: toDateKey(weekEnd),
-      generatedAt: new Date().toISOString(),
-      items: aggregateIngredients(visibleMeals),
-    };
-
-    try {
-      publishGeneratedGroceryList(groceryList);
-      setGeneratedList(groceryList);
-      setActionError('');
-    } catch (error) {
-      setActionError(`Grocery list could not be generated: ${error.message}`);
+    } else {
+      setActionError(t('Meal could not be removed: {error}', { error: result.error }));
     }
   }
 
@@ -381,28 +294,28 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
     <section className="app meal-planner-page meal-planner" aria-labelledby="mp-heading">
       <header className="mp-page-header">
         <div className="mp-heading-copy">
-          <p className="mp-eyebrow">02 — WEEKLY PLAN</p>
-          <h2 id="mp-heading" className="mp-page-title">Meal Planner</h2>
-          <p className="mp-subtitle">Build a weekly plan that works for you.</p>
+          <p className="mp-eyebrow">{t('02 — WEEKLY PLAN')}</p>
+              <h2 id="mp-heading" className="mp-page-title">{t('Meal Planner')}</h2>
+              <p className="mp-subtitle">{t('Build a weekly plan that works for you.')}</p>
         </div>
         <div className="mp-header-actions">
-          <button type="button" className="mp-button mp-button-secondary" onClick={handleGenerateGroceries}>
+          <button type="button" className="mp-button mp-button-secondary" onClick={() => onNavigate('grocery-list')}>
             <Icon name="cart" />
-            Generate Grocery List
+            {t('Grocery List')}
           </button>
           <button type="button" className="mp-button mp-button-primary" onClick={() => openAddMeal()}>
             <Icon name="plus" />
-            Add Meal
+            {t('Add Meal')}
           </button>
         </div>
       </header>
 
       <div className="mp-week-toolbar">
-        <div className="mp-week-arrows" aria-label="Change week">
+        <div className="mp-week-arrows" aria-label={t('Change week')}>
           <button
             type="button"
             className="mp-icon-button"
-            aria-label="Previous week"
+            aria-label={t('Previous week')}
             onClick={() => setViewedDateKey((current) => shiftDateKey(current, -7))}
           >
             <Icon name="left" />
@@ -410,7 +323,7 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
           <button
             type="button"
             className="mp-icon-button"
-            aria-label="Next week"
+            aria-label={t('Next week')}
             onClick={() => setViewedDateKey((current) => shiftDateKey(current, 7))}
           >
             <Icon name="right" />
@@ -419,18 +332,18 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
 
         <div className="mp-week-picker-wrap">
           <Icon name="calendar" />
-          <span className="mp-week-range">{formatWeekRange(weekStart, weekEnd)}</span>
+          <span className="mp-week-range">{formatWeekRange(weekStart, weekEnd, locale)}</span>
           <button
             type="button"
             className="mp-change-week"
             aria-expanded={weekPickerOpen}
             onClick={() => setWeekPickerOpen((open) => !open)}
           >
-            CHANGE WEEK
+            {t('CHANGE WEEK')}
           </button>
           {weekPickerOpen && (
             <div className="mp-week-picker">
-              <label htmlFor="mp-week-date">Choose any date in the week</label>
+              <label htmlFor="mp-week-date">{t('Choose any date in the week')}</label>
               <input
                 id="mp-week-date"
                 type="date"
@@ -442,67 +355,49 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
         </div>
 
         <p className="mp-meal-count">
-          <strong>{visibleMeals.length}</strong> {visibleMeals.length === 1 ? 'meal' : 'meals'} planned
+          <strong>{visibleMeals.length}</strong> {t(visibleMeals.length === 1 ? 'meal' : 'meals')} {t('planned')}
         </p>
       </div>
 
       {(storageError || actionError) && (
-        <p className="mp-error" role="alert">{storageError || actionError}</p>
+        <p className="mp-error" role="alert">
+          {storageError
+            ? t('Saved meals could not be loaded: {error}', { error: storageError })
+            : actionError}
+        </p>
       )}
 
-      {generatedList && (
-        <section className="mp-grocery-result" aria-labelledby="mp-grocery-heading">
-          <div className="mp-grocery-heading">
-            <div>
-              <p className="mp-eyebrow">GENERATED FOR THIS WEEK</p>
-              <h3 id="mp-grocery-heading">Grocery list</h3>
-            </div>
-            <button type="button" className="mp-icon-button" aria-label="Close grocery list" onClick={() => setGeneratedList(null)}>
-              <Icon name="close" />
-            </button>
-          </div>
-          {generatedList.items.length === 0 ? (
-            <p className="mp-grocery-empty">Add ingredients to this week’s meals to build your grocery list.</p>
-          ) : (
-            <ul className="mp-grocery-items">
-              {generatedList.items.map((item) => (
-                <li key={normalizeIngredientName(item.name)}>
-                  <span>{item.name}</span>
-                  {item.quantity && <span className="mp-grocery-quantity">{item.quantity}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      <div className="mp-calendar-scroll" aria-label="Weekly meal calendar">
+      <div className="mp-calendar-scroll" aria-label={t('Weekly meal calendar')}>
         <div className="mp-calendar-grid">
           {weekDates.map(({ weekday, date, dateKey }) => (
             <section className="mp-day-column" key={dateKey} aria-label={`${weekday}, ${dateKey}`}>
               <header className="mp-day-header">
                 <span className="mp-day-name">{weekday.slice(0, 3)}</span>
                 <time className="mp-day-date" dateTime={dateKey}>
-                  {date.toLocaleDateString('en-US', { month: 'short' })} {date.getDate()}
+                  {date.toLocaleDateString(locale, { month: 'short' })} {date.getDate()}
                 </time>
               </header>
               <div className="mp-day-meals">
                 {MEAL_CATEGORIES.map((category) => {
                   const meal = mealBySlot.get(`${dateKey}:${category}`);
                   return (
-                    <section className="mp-meal-slot" key={category} aria-label={category}>
-                      <h3 className="mp-category-label">{category}</h3>
+                    <section className="mp-meal-slot" key={category} aria-label={t(category)}>
+                      <h3 className="mp-category-label">{t(category)}</h3>
                       {meal ? (
                         <MealCard meal={meal} onEdit={openEditMeal} onRemove={handleRemoveMeal} />
                       ) : (
                         <button
                           type="button"
                           className="mp-empty-slot"
-                          aria-label={`Add ${category.toLowerCase()} for ${weekday}, ${dateKey}`}
+                          aria-label={t('Add {category} for {weekday}, {date}', {
+                            category: t(category).toLowerCase(),
+                            weekday,
+                            date: dateKey,
+                          })}
                           onClick={() => openAddMeal(dateKey, category)}
                         >
                           <Icon name="plus" size={17} />
-                          <span>Add meal</span>
+                          <span>{t('Add meal')}</span>
                         </button>
                       )}
                     </section>
@@ -521,9 +416,12 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
           initialDate={modalState.initialDate}
           initialCategory={modalState.initialCategory}
           occupiedMeal={modalState.occupiedMeal}
+          recipes={recipes}
+          selectionError={modalState.selectionError}
           onClose={() => setModalState(null)}
           onSave={handleSaveMeal}
           onEditOccupied={openEditMeal}
+          onBrowseRecipes={handleBrowseRecipes}
         />
       )}
 
@@ -536,10 +434,10 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
             aria-labelledby="mp-confirm-title"
             aria-describedby="mp-confirm-description"
           >
-            <p className="mp-eyebrow">REMOVE FROM YOUR PLAN</p>
-            <h2 id="mp-confirm-title">Remove this meal?</h2>
+            <p className="mp-eyebrow">{t('REMOVE FROM YOUR PLAN')}</p>
+            <h2 id="mp-confirm-title">{t('Remove this meal?')}</h2>
             <p id="mp-confirm-description">
-              “{mealToRemove.name}” will be removed from your weekly plan.
+              {t('“{name}” will be removed from your weekly plan.', { name: mealToRemove.name })}
             </p>
             <div className="mp-modal-actions">
               <button
@@ -548,14 +446,14 @@ function MealPlanner({ onPlanChange, firstDayOfWeek }) {
                 onClick={() => setMealToRemove(null)}
                 autoFocus
               >
-                Keep Meal
+                {t('Keep Meal')}
               </button>
               <button
                 type="button"
                 className="mp-button mp-confirm-remove"
                 onClick={confirmRemoveMeal}
               >
-                Remove Meal
+                {t('Remove Meal')}
               </button>
             </div>
           </section>

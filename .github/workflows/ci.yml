@@ -1,16 +1,11 @@
 # Name shown in the repository's "Actions" tab.
 name: CI
 
-# When should this workflow run?
-#
-# Automatic runs are PAUSED until we set up deployment. For now CI only runs
-# when started by hand: Actions tab -> CI -> "Run workflow".
-# To turn automatic runs back on, replace "workflow_dispatch:" below with:
-#
-#   push:
-#     branches: ['**']
-#   pull_request:
+# Run checks on every branch push and pull request. Manual runs remain available.
 on:
+  push:
+    branches: ['**']
+  pull_request:
   workflow_dispatch:
 
 # If someone pushes twice in quick succession, the older run is pointless

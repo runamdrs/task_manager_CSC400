@@ -1,3 +1,11 @@
+import { useTranslation } from '../i18n/useTranslation.js';
+
+const LANGUAGE_OPTIONS = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'de', label: 'German' },
+];
+
 const FIRST_DAY_OPTIONS = [
   { value: 'monday', label: 'Monday' },
   { value: 'sunday', label: 'Sunday' },
@@ -22,12 +30,22 @@ function CalendarIcon() {
   );
 }
 
-function SettingsPage({ firstDayOfWeek, onFirstDayOfWeekChange }) {
+function SettingsPage({
+  language,
+  languageError,
+  onLanguageChange,
+  firstDayOfWeek,
+  onFirstDayOfWeekChange,
+}) {
+  const { t } = useTranslation();
+
   return (
     <div className="app settings-page">
       <header className="settings-header">
-        <h1 className="settings-title">Settings</h1>
-        <p className="settings-subtitle">Choose how SmartPrep works for you.</p>
+        <h1 className="settings-title">{t('Settings')}</h1>
+        <p className="settings-subtitle">
+          {t('Choose your language and personalize SmartPrep.')}
+        </p>
       </header>
 
       <section className="settings-card" aria-labelledby="settings-preferences-heading">
@@ -36,16 +54,38 @@ function SettingsPage({ firstDayOfWeek, onFirstDayOfWeekChange }) {
             <CalendarIcon />
           </span>
           <div>
-            <h2 id="settings-preferences-heading" className="settings-card-title">Preferences</h2>
-            <p className="settings-card-subtitle">Customize how your weekly plan is displayed.</p>
+            <h2 id="settings-preferences-heading" className="settings-card-title">
+              {t('Preferences')}
+            </h2>
+            <p className="settings-card-subtitle">
+              {t('Choose the language used throughout SmartPrep.')}
+            </p>
           </div>
         </div>
 
         <div className="settings-row">
+          <label className="settings-row-label" htmlFor="language-preference">
+            {t('Language')}
+          </label>
+          <select
+            id="language-preference"
+            className="settings-language-select"
+            value={language}
+            onChange={(event) => onLanguageChange(event.target.value)}
+          >
+            {LANGUAGE_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>{t(label)}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="settings-row">
           <div className="settings-row-copy">
-            <p id="first-day-label" className="settings-row-label">First day of the week</p>
+            <p id="first-day-label" className="settings-row-label">
+              {t('First day of the week')}
+            </p>
             <p id="first-day-description" className="settings-row-description">
-              Used across your meal planner and weekly summaries.
+              {t('Used across your meal planner and weekly summaries.')}
             </p>
           </div>
           <div
@@ -63,11 +103,16 @@ function SettingsPage({ firstDayOfWeek, onFirstDayOfWeekChange }) {
                   checked={firstDayOfWeek === value}
                   onChange={() => onFirstDayOfWeekChange(value)}
                 />
-                <span>{label}</span>
+                <span>{t(label)}</span>
               </label>
             ))}
           </div>
         </div>
+        {languageError && (
+          <p className="mp-error" role="alert">
+            {t('Language preference could not be saved: {error}', { error: languageError })}
+          </p>
+        )}
       </section>
     </div>
   );

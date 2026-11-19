@@ -1,7 +1,9 @@
 // Import state for controlled fields and an effect for edit-mode synchronization.
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../i18n/useTranslation.js';
 
 function TaskForm({ onSubmit, editingTask, onCancel }) {
+  const { t } = useTranslation();
   // Store each form field so the inputs remain controlled by React.
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -39,7 +41,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
 
     if (!trimmedTitle) {
       // Show a local validation message instead of submitting invalid data.
-      setError('Title is required.');
+      setError(t('Title is required.'));
       return;
     }
 
@@ -76,11 +78,11 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
     // The same form supports both adding a new task and editing an existing one.
     <form className="task-form" onSubmit={handleSubmit}>
       {/* Change the heading to reflect the current form mode. */}
-      <h2>{editingTask ? 'Edit Task' : 'Add Task'}</h2>
+      <h2>{editingTask ? t('Edit Task') : t('Add Task')}</h2>
 
       {/* Keep the title field associated with its visible label. */}
       <div className="form-field">
-        <label htmlFor="title">Title</label>
+        <label htmlFor="title">{t('Title')}</label>
         <input
           id="title"
           type="text"
@@ -91,7 +93,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
 
       {/* Store optional details about the task. */}
       <div className="form-field">
-        <label htmlFor="description">Description</label>
+        <label htmlFor="description">{t('Description')}</label>
         <textarea
           id="description"
           rows="3"
@@ -102,7 +104,7 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
 
       {/* Store an optional calendar date in the browser's date format. */}
       <div className="form-field">
-        <label htmlFor="dueDate">Due Date</label>
+        <label htmlFor="dueDate">{t('Due Date')}</label>
         <input
           id="dueDate"
           type="date"
@@ -113,27 +115,27 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
 
       {/* Restrict priority to the three supported values. */}
       <div className="form-field">
-        <label htmlFor="priority">Priority</label>
+        <label htmlFor="priority">{t('Priority')}</label>
         <select
           id="priority"
           value={priority}
           onChange={(event) => setPriority(event.target.value)}
         >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
+          <option value="low">{t('Low')}</option>
+          <option value="medium">{t('Medium')}</option>
+          <option value="high">{t('High')}</option>
         </select>
       </div>
 
       <div className="form-field">
-        <label htmlFor="taskType">Task Type</label>
+        <label htmlFor="taskType">{t('Task Type')}</label>
         <select
           id="taskType"
           value={taskType}
           onChange={(event) => setTaskType(event.target.value)}
         >
-          <option value="general">General</option>
-          <option value="cooking">Cooking</option>
+          <option value="general">{t('General')}</option>
+          <option value="cooking">{t('Cooking')}</option>
         </select>
       </div>
 
@@ -143,11 +145,11 @@ function TaskForm({ onSubmit, editingTask, onCancel }) {
       {/* Show the cancel action only while editing an existing task. */}
       <div className="form-actions">
         <button className="primary-action" type="submit">
-          {editingTask ? 'Update Task' : 'Add Task'}
+          {editingTask ? t('Update Task') : t('Add Task')}
         </button>
         {editingTask && (
           <button type="button" onClick={handleCancel}>
-            Cancel
+            {t('Cancel')}
           </button>
         )}
       </div>

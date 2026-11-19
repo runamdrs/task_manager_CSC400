@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from '../i18n/useTranslation.js';
 
 const QUANTITY_PATTERN = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)(?=\s|$)/;
 const COMMON_FRACTIONS = [
@@ -75,7 +76,14 @@ function StatIcon({ children }) {
   );
 }
 
-function RecipeDetail({ recipe, onBack }) {
+function RecipeDetail({
+  recipe,
+  onBack,
+  selectionMode = false,
+  onChooseRecipe,
+  onCancelRecipeSelection,
+}) {
+  const { t } = useTranslation();
   const totalMinutes = recipe.prepMinutes + recipe.cookMinutes;
   const [checkedIngredients, setCheckedIngredients] = useState(() =>
     recipe.ingredients.map(() => false)
@@ -107,8 +115,17 @@ function RecipeDetail({ recipe, onBack }) {
   return (
     <div className="app recipes-page recipe-detail-page">
       <button type="button" className="recipe-back-link" onClick={onBack}>
-        ← Back to Recipes
+        {t('← Back to Recipes')}
       </button>
+      {selectionMode && (
+        <button
+          type="button"
+          className="recipe-cancel-selection"
+          onClick={onCancelRecipeSelection}
+        >
+          {t('Cancel selection')}
+        </button>
+      )}
 
       <section className="recipe-detail-hero">
         <div className="recipe-detail-image">
@@ -116,11 +133,11 @@ function RecipeDetail({ recipe, onBack }) {
         </div>
 
         <div className="recipe-detail-summary">
-          <p className="eyebrow">04 — Recipe Details</p>
+          <p className="eyebrow">{t('04 — Recipe Details')}</p>
           <div className="recipe-detail-tags">
             {recipe.tags.map((tag) => (
               <span className="recipe-tag recipe-tag-inline" key={tag}>
-                {tag}
+                {t(tag)}
               </span>
             ))}
           </div>
@@ -134,18 +151,18 @@ function RecipeDetail({ recipe, onBack }) {
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 7v5l3 2" />
                 </StatIcon>
-                Prep
+                {t('Prep')}
               </dt>
-              <dd>{recipe.prepMinutes} min</dd>
+              <dd>{recipe.prepMinutes} {t('min')}</dd>
             </div>
             <div>
               <dt>
                 <StatIcon>
                   <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
                 </StatIcon>
-                Cook
+                {t('Cook')}
               </dt>
-              <dd>{recipe.cookMinutes} min</dd>
+              <dd>{recipe.cookMinutes} {t('min')}</dd>
             </div>
             <div>
               <dt>
@@ -153,9 +170,9 @@ function RecipeDetail({ recipe, onBack }) {
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 7v5l3 2" />
                 </StatIcon>
-                Total
+                {t('Total')}
               </dt>
-              <dd>{totalMinutes} min</dd>
+              <dd>{totalMinutes} {t('min')}</dd>
             </div>
             <div>
               <dt>
@@ -164,29 +181,39 @@ function RecipeDetail({ recipe, onBack }) {
                   <circle cx="9" cy="7" r="3" />
                   <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
                 </StatIcon>
-                Serves
+                {t('Serves')}
               </dt>
               <dd>{servings}</dd>
             </div>
           </dl>
 
-          <button type="button" className="recipe-btn-primary recipe-add-to-plan" disabled title="Coming soon">
-            Add to Meal Plan
-          </button>
+          {selectionMode ? (
+            <button
+              type="button"
+              className="recipe-btn-primary recipe-add-to-plan"
+              onClick={() => onChooseRecipe(recipe.id)}
+            >
+              {t('Select recipe')}
+            </button>
+          ) : (
+            <button type="button" className="recipe-btn-primary recipe-add-to-plan" disabled title={t('Coming soon')}>
+              {t('Add to Meal Plan')}
+            </button>
+          )}
         </div>
       </section>
 
       <div className="recipe-detail-columns">
         <section className="recipe-detail-section" aria-labelledby="ingredients-heading">
-          <p className="recipe-section-slogan">What you&apos;ll need</p>
+          <p className="recipe-section-slogan">{t("What you'll need")}</p>
           <div className="recipe-section-heading-row">
-            <h2 id="ingredients-heading">Ingredients</h2>
-            <div className="recipe-servings-toggle" aria-label="Adjust servings">
-              <button type="button" onClick={() => adjustServings(-1)} aria-label="Decrease servings">
+            <h2 id="ingredients-heading">{t('Ingredients')}</h2>
+            <div className="recipe-servings-toggle" aria-label={t('Adjust servings')}>
+              <button type="button" onClick={() => adjustServings(-1)} aria-label={t('Decrease servings')}>
                 −
               </button>
-              <span>{servings} servings</span>
-              <button type="button" onClick={() => adjustServings(1)} aria-label="Increase servings">
+              <span>{servings} {t('servings')}</span>
+              <button type="button" onClick={() => adjustServings(1)} aria-label={t('Increase servings')}>
                 +
               </button>
             </div>
@@ -212,11 +239,11 @@ function RecipeDetail({ recipe, onBack }) {
         </section>
 
         <section className="recipe-detail-section" aria-labelledby="instructions-heading">
-          <p className="recipe-section-slogan">Prep and Cook</p>
+          <p className="recipe-section-slogan">{t('Prep and Cook')}</p>
           <div className="recipe-section-heading-row">
-            <h2 id="instructions-heading">Cooking Instructions</h2>
+            <h2 id="instructions-heading">{t('Cooking Instructions')}</h2>
             <p className="recipe-step-progress">
-              {completedStepCount} of {recipe.steps.length} complete
+              {completedStepCount} {t('of {count} complete', { count: recipe.steps.length })}
             </p>
           </div>
 

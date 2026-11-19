@@ -1,66 +1,38 @@
-# CSC400 Task Flow Base Code
+# SmartPrep
 
-A simple task management application built with React and Vite. Tasks are stored in the browser with `localStorage` — there is no backend or database.
+SmartPrep is a React and Vite meal-planning application. Planned meals, tasks,
+grocery purchase progress, and language preferences are stored in the browser's
+`localStorage`; there is no backend.
 
-## Installation
+## Run locally
 
 ```bash
-cd csc400-task-flow-base-code-wiktor
-npm install
+npm ci
+npm run dev
 ```
 
-## npm Commands
+## Project checks
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Start the development server |
-| `npm run build` | Build the app for production |
+| `npm run lint` | Lint the project with Oxlint |
+| `npm test` | Run the Vitest unit tests |
+| `npm run build` | Create the production build |
 | `npm run preview` | Preview the production build locally |
 
-## Current Features
+GitHub Actions runs dependency installation, linting, tests, and the production
+build on branch pushes and pull requests. It can also be started manually.
 
-- Create a new task (title, description, due date, priority)
-- Display all tasks
-- Edit an existing task
-- Delete a task (with confirmation)
-- Mark a task complete or incomplete
-- Persist tasks in `localStorage`
-- Load saved tasks on startup
-- Validate that a title is required
-- Empty-state message when no tasks exist
-- Sample tasks on first visit
+## Current features
 
-## Folder Structure
+- Plan, edit, and remove dated meals in the weekly planner
+- Browse the recipe library from a meal dialog; choosing a recipe adds it to
+  that dialog's selected day and meal category
+- View shared planned meals on the dashboard and recipe library
+- Derive a combined grocery ingredient list from planned meals and recipes
+- Track cooking tasks and grocery purchase progress
+- Switch the interface between English, Spanish, and German; the preference is
+  saved between visits
 
-```
-csc400-task-flow-base-code-wiktor/
-├── index.html
-├── package.json
-├── vite.config.js
-├── README.md
-└── src/
-    ├── App.jsx
-    ├── main.jsx
-    ├── styles.css
-    ├── components/
-    │   ├── TaskForm.jsx
-    │   ├── TaskList.jsx
-    │   └── TaskItem.jsx
-    └── services/
-        └── taskStorage.js
-```
-
-The `src/` folder contains the application code. Its `components/` folder contains
-the reusable form and task display components, while its `services/` folder contains
-the browser-storage integration. The `public/` folder is reserved for static assets
-that are served without being processed by Vite.
-
-## Ideas for Future Enhancements
-
-- Filter tasks by status (all / active / completed)
-- Sort by due date or priority
-- Search tasks by title
-- Add categories or tags
-- Due-date reminders
-- Export / import tasks as JSON
-- Connect to a backend API for multi-device sync
+Recipe names, descriptions, ingredients, task details, and other user content
+are kept as entered and are not translated.

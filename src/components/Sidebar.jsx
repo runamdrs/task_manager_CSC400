@@ -1,3 +1,5 @@
+import { useTranslation } from '../i18n/useTranslation.js';
+
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { id: 'meal-planner', label: 'Meal Planner', icon: 'calendar' },
@@ -60,6 +62,8 @@ function NavigationIcon({ name, className = '' }) {
 }
 
 function Sidebar({ activePage, onNavigate }) {
+  const { t } = useTranslation();
+
   return (
     <aside className="sidebar">
       <a
@@ -69,7 +73,7 @@ function Sidebar({ activePage, onNavigate }) {
           event.preventDefault();
           onNavigate('dashboard');
         }}
-        aria-label="SmartPrep home"
+        aria-label={`SmartPrep — ${t('Dashboard')}`}
       >
         <span className="brand-mark">
           <img
@@ -80,12 +84,12 @@ function Sidebar({ activePage, onNavigate }) {
         </span>
         <span className="brand-copy">
           <span className="brand-name">SmartPrep</span>
-          <span className="brand-tagline">Plan. Shop. Prep.</span>
+          <span className="brand-tagline">{t('Plan. Shop. Prep.')}</span>
         </span>
       </a>
 
-      <nav className="sidebar-nav" aria-label="Main menu">
-        <h2 className="nav-heading">Main Menu</h2>
+      <nav className="sidebar-nav" aria-label={t('Main menu')}>
+        <h2 className="nav-heading">{t('Main Menu')}</h2>
         <ul className="nav-list">
           {NAV_ITEMS.map((item) => (
             <li key={item.id}>
@@ -96,7 +100,7 @@ function Sidebar({ activePage, onNavigate }) {
                 onClick={() => onNavigate(item.id)}
               >
                 <NavigationIcon name={item.icon} className="nav-icon" />
-                <span>{item.label}</span>
+                <span>{t(item.label)}</span>
               </button>
             </li>
           ))}

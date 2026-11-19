@@ -1,9 +1,8 @@
 # SmartPrep Future Features
 
-This document records future integration requirements between the Meal Planner,
-Recipes, Grocery List, Cooking Tasks, and Dashboard features. These are
-specifications only and must not be treated as implemented functionality.
-Update this document when the corresponding features are implemented.
+This document records the current integration between the Meal Planner,
+Recipes, Grocery List, and Dashboard, along with remaining requirements for
+unfinished features. Update it when implementation changes.
 
 ## Feature ownership
 
@@ -18,30 +17,20 @@ Update this document when the corresponding features are implemented.
 The Dashboard must not keep its own copy of meal, recipe, grocery, or cooking
 task data. It reads through shared selectors exposed by the owning features.
 
-## Current project state (as of 2026-11-05)
+## Current project state (as of 2026-11-19)
 
 ### Meal Planner
 
-- Planned meals are stored in `localStorage` under
+- `App.jsx` owns planned meals, loaded from and saved to `localStorage` under
   `smartprep-meal-planner-meals` by `src/services/mealPlannerStorage.js`.
 - Each planned meal has the shape:
-  `{ id, name, date: 'YYYY-MM-DD', category: 'Breakfast' | 'Lunch' | 'Dinner',
-  ingredients: [{ name, quantity }], preparationTime, image }`.
+  `{ id, recipeId?, name, date, category, ingredients, preparationTime, image }`.
 - Only one meal is allowed per `date` + `category` slot.
-- Meals are free-form: the user types the name and ingredients by hand. A
-  planned meal has **no `recipeId`** and no link to the Recipes library.
-- `MealPlanner.jsx` owns the meal list in its own component state. It pushes a
-  legacy seven-day string grid (`{ Breakfast, Lunch, Dinner }` names) to
-  `App` through `onPlanChange`, only while the current week is displayed. The
-  Dashboard's "Planned Meals" count reads this legacy grid.
-- `MealPlanner.jsx` already contains ingredient consolidation logic
-  (`normalizeIngredientName`, `parseQuantity`, `normalizeUnit`,
-  `aggregateIngredients`). It merges by normalized name and converts compatible
-  units to a base unit (mL for volume, g for weight, count).
-- A "Generate grocery list" button writes a one-off snapshot to
-  `smartprep-generated-grocery-list` and fires a
-  `smartprep:grocery-list-generated` event. No feature consumes this yet, and
-  the snapshot does not track purchase status or update when meals change.
+- A meal can be linked to a recipe through optional `recipeId`; linked meals
+  read ingredients live from the recipe, while free-form meals continue to use
+  their own ingredients.
+- `MealPlanner.jsx` receives the shared meal data from `App.jsx`; the Dashboard
+  derives its week summary from the same meal collection.
 
 ### Recipes
 
@@ -61,48 +50,54 @@ task data. It reads through shared selectors exposed by the owning features.
 
 ### Grocery List
 
-- The Grocery List route renders `PlaceholderPage`. `origin/caleb/smart-grocery-list`
-  contains no grocery code. There is no grocery item schema and no purchase
-  status storage.
+- `src/selectors/grocery.js` derives the weekly list from planned meals and
+  recipes. `buildGroceryItems()` consolidates duplicate ingredients and records
+  their planned-meal sources; free-form meals without `recipeId` are included.
+- Grocery items are never stored. Only purchase records are persisted under
+  `smartprep-grocery-purchases` by `src/services/groceryStorage.js`.
+- Purchase records use the Monday of each week plus the normalized ingredient
+  key, so checkmarks survive a first-day-of-week preference change. A larger
+  new requirement changes status to `needs-more`.
+- The page shows all derived items, including purchased items, with controls to
+  purchase or un-purchase them and source meals for each ingredient.
+- **Manual add/delete choice: option (a), remove them.** Items must come from
+  planned meals; the page directs users to add meals in the Meal Planner rather
+  than offering prompt-based manual entries or deletions.
+- The Meal Planner's Grocery List action opens this shared list. It no longer
+  writes a separate generated grocery snapshot.
 
-### Dashboard (implemented on `fix/dashboard-meal-planner-flow`)
+### Dashboard: Grocery Progress card
 
-Built without modifying Meal Planner, Recipes, or Grocery List code:
+- The card reads the App-owned `weeklyGroceries` result for remaining items,
+  weekly total, and progress. Clicking it opens the Grocery List page.
+- With no derived items, it displays "No groceries needed yet."
 
-- `src/utils/ingredientQuantities.js`: shared name normalization and quantity
-  consolidation. It duplicates the private logic in `MealPlanner.jsx` for now;
-  the planner can switch to it once Philipp agrees.
-- `src/selectors/grocery.js`: derives weekly grocery items, progress, and
-  today's prep from planned meals + recipes. Supports an optional `recipeId`
-  on meals so linked recipes work as soon as the planner adds them.
-- `src/services/groceryStorage.js`: provisional purchase status store
-  (`smartprep-grocery-purchases`), pending Caleb's review.
-- `App.jsx` reads planned meals through `loadPlannedMeals()` and reloads them
-  when the planner calls its existing `onPlanChange` callback, on page
-  navigation, and on cross-tab `storage` events. The legacy `mealPlan` grid and
-  `src/data/mealPlan.js` were removed.
-- Grocery Progress card shows real weekly counts and a progress bar.
-- Today's Prep Tasks shows today's unpurchased ingredients (checkable) and
-  today's meals by category.
+### Dashboard: Today's Prep Tasks
 
-Still pending other features: the Grocery List page (purchases can't be undone
-from the Dashboard yet, since purchased items are hidden there), opening a
-specific recipe from the Dashboard, recipe-linked meals, and Cooking Tasks.
-The "Prep Tasks" summary card stays "Coming Soon" until Cooking Tasks exist.
+- `getTodayPrep()` derives today's ingredients and meals from the same weekly
+  grocery result used by the Grocery List.
+- It shows today's unpurchased ingredients (checkable) and meals grouped by
+  category. A check updates the shared purchase status immediately.
+- Purchased items are omitted here but remain visible and reversible on the
+  Grocery List page.
+
+The remaining Dashboard work is opening a specific recipe from the Dashboard
+and implementing Cooking Tasks. The "Prep Tasks" summary card stays "Coming
+Soon" until Cooking Tasks exist.
 
 ## Automatic grocery list generation
 
-### Requirements
+### Current behavior
 
-- When a recipe is added to the Meal Planner, its ingredients are retrieved
+- When a recipe is selected in the Meal Planner, its ingredients are retrieved
   from the Recipes data automatically.
 - Each grocery item records which planned meals require it.
-- Show the ingredient name and quantity when available.
+- Show the ingredient name and combined quantity when available.
 - Consolidate the same ingredient across planned meals into one item. Combine
   quantities when units are compatible; otherwise list the parts side by side
   (for example, `2 cloves + 1 tbsp`).
-- Users can mark items as purchased. Purchase status persists across page
-  changes and refreshes.
+- Users can mark or unmark items as purchased. Purchase status persists across
+  page changes and refreshes.
 - The list updates when planned meals or recipes change, including:
   removing a meal, switching a meal's recipe, adding another recipe that shares
   an ingredient, and planning meals on different days.
@@ -111,79 +106,35 @@ The "Prep Tasks" summary card stays "Coming Soon" until Cooking Tasks exist.
 - Grocery items come from real recipe or planned-meal ingredients only. No
   fictional or hardcoded items.
 
-### Proposed design (pending team agreement)
+### Data flow
 
-1. **Link planned meals to recipes.** Add an optional `recipeId` to planned
-   meals. When `recipeId` is set, ingredients are read live from the recipe so
-   recipe edits flow through. When it is not set, the meal's own hand-entered
-   `ingredients` are used, so existing free-form meals keep working.
-2. **Derive grocery items; do not store them.** Grocery items are computed by a
-   pure selector from planned meals + recipes for a date range. Because the list
-   is recomputed from source data every time, removing or changing a meal can
-   never leave orphans or delete an ingredient another meal still needs.
-3. **Store only purchase status.** The Grocery List feature persists purchase
-   records in `localStorage` (proposed key `smartprep-grocery-purchases`),
-   keyed by week start + normalized ingredient name, with the quantity that was
-   required when the item was marked purchased. If a newly planned meal raises
-   the requirement above what was purchased, the item shows as needing more
-   instead of staying silently checked.
-4. **Share one quantity module.** Move ingredient normalization, unit parsing,
-   and consolidation out of `MealPlanner.jsx` into a shared utility used by the
-   Meal Planner, Grocery List, Dashboard, and (optionally) recipe scaling.
-   Combine identical units directly (`1 cup + 1/2 cup = 1 1/2 cups`) and only
-   convert to a base unit when units differ.
+1. `App.jsx` loads planned meals and purchase records, computes
+   `weeklyGroceries` with `getWeeklyGroceries()`, and passes that same result to
+   the Dashboard and Grocery List. `getTodayPrep()` uses it for today's view.
+2. `buildGroceryItems()` derives one item per normalized ingredient, combines
+   quantities with `src/utils/ingredientQuantities.js`, and records each
+   planned-meal source. Removing or changing a meal recomputes the list without
+   orphaning ingredients still needed by another meal.
+3. Only purchase status is persisted. Each record stores the covered quantity
+   and is keyed by Monday + normalized ingredient name. A requirement above the
+   recorded amount is `needs-more`, not `purchased`.
+4. The Meal Planner's separate snapshot generator is retired; it navigates to
+   the shared derived list instead.
 
-Proposed derived grocery item shape:
+Derived grocery item shape:
 
 ```js
 {
   key: 'garlic',                // normalized ingredient name
   name: 'Garlic',
   quantity: '4 cloves',         // combined display quantity
+  totals: { clove: 4 },
   sources: [                    // planned meals that need this ingredient
-    { mealId, date, category, recipeId }
+    { mealId, mealName, date, category, recipeId }
   ],
-  purchased: false,
+  status: 'to-buy',             // 'to-buy' | 'purchased' | 'needs-more'
 }
 ```
-
-## Dashboard: Grocery Progress card
-
-- Show the number of items still to buy for the current week, e.g. "3 items
-  left to buy".
-- Show the total number of grocery items for the week.
-- Show a progress bar of purchased versus remaining items.
-- Update automatically when items are purchased or planned meals change.
-- Clicking the card opens the Grocery List page.
-- With no grocery items, show: "No groceries needed yet."
-- All numbers come from the shared grocery selector. Nothing is hardcoded.
-
-The current week runs Monday to Sunday, matching the Meal Planner.
-
-## Dashboard: Today's Prep Tasks
-
-The Today's Prep Tasks section combines the grocery items needed for today with
-the meals scheduled for today.
-
-### Grocery items to purchase today
-
-- Include only ingredients needed by meals planned for today.
-- Exclude items already marked purchased.
-- If several meals today need the same ingredient, show it once with today's
-  combined quantity.
-- Purchase status is read from the same weekly purchase record used by the
-  Grocery List, so checking an item in either place updates both.
-
-### Meals planned for today
-
-- Read from the Meal Planner; show only today's meals.
-- Group by actual category: Breakfast, Lunch, Dinner.
-- When a meal is linked to a recipe, the meal name links to that recipe's
-  details.
-- Do not display fictional meals.
-
-Show an appropriate empty state when there are no meals or grocery items for
-today.
 
 ## Dashboard: Prep Tasks summary card
 
@@ -240,34 +191,20 @@ recipes. Do not infer schedules from instruction text.
 
 ## Decisions needed before implementation
 
-1. **Meal Planner (Philipp):** add an optional `recipeId` to planned meals and a
-   "choose from Recipes" option in the meal form. Decide whether linked meals
-   read ingredients live from the recipe (proposed) or copy them in.
-2. **Meal Planner (Philipp):** move planned-meal state from `MealPlanner.jsx`
-   into `App` (or a shared hook) so the Dashboard and Grocery List read the same
-   data, replacing the legacy `mealPlan` grid and `onPlanChange`.
-3. **Meal Planner + Grocery List (Philipp, Caleb):** replace the one-off
-   "Generate grocery list" snapshot with the derived grocery selector.
-4. **Recipes (Katlyn):** agree on one ingredient quantity field name
-   (`quantity` vs `amount`), add stable step IDs, and allow opening a specific
-   recipe from another page.
-5. **Grocery List (Caleb):** agree on the derived item shape, the purchase
-   record key, and how a purchased item behaves when its required quantity
-   increases.
-6. **Cooking Tasks:** confirm completion is tracked per planned meal rather
-   than per recipe.
+1. **Recipes:** allow opening a specific recipe from another page.
+2. **Cooking Tasks:** confirm completion is tracked per planned meal rather
+   than per recipe; add stable IDs to recipe steps.
 
 ## Development rules
 
-- These requirements describe future work; they are not current functionality.
+- Grocery items must remain derived from real meal and recipe ingredients;
+  persist purchase status only.
 - Do not create fake data or hardcoded examples.
-- Do not implement unfinished Recipes, Grocery List, or Cooking Tasks features
-  before their data structures are agreed with the owning developer.
+- Do not implement unfinished Cooking Tasks features before their data
+  structures are agreed with the owning developer.
 - Cooking Tasks must be integrated into Recipe Details, not built as a separate
   page or duplicate recipe system.
 - Do not break existing Meal Planner functionality, including free-form meals
   without a recipe.
-- Keep existing placeholder components until their features are implemented.
-- Keep Dashboard integration modular so real feature data can be connected
-  without rebuilding the page.
+- Keep Dashboard integration modular and based on shared selectors.
 - Update this document as the corresponding features are implemented.
