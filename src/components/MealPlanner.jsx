@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MealFormModal from './MealFormModal.jsx';
 import {
   publishGeneratedGroceryList,
@@ -11,6 +11,7 @@ import {
 } from '../utils/dates.js';
 import { LOCALES } from '../i18n/translations.js';
 import { useTranslation } from '../i18n/useTranslation.js';
+import { createMealFromRecipe } from '../utils/recipeMeal.js';
 
 const MEAL_CATEGORIES = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -236,6 +237,9 @@ function MealPlanner({
   onSaveMeal,
   onRemoveMeal,
   firstDayOfWeek,
+  onBrowseRecipes,
+  recipeSelection,
+  onRecipeApplied,
 }) {
   const { t, language } = useTranslation();
   const locale = LOCALES[language] ?? LOCALES.en;
@@ -245,6 +249,7 @@ function MealPlanner({
   const [mealToRemove, setMealToRemove] = useState(null);
   const [generatedList, setGeneratedList] = useState(null);
   const [actionError, setActionError] = useState('');
+  const appliedRecipeRequest = useRef(null);
 
   const weekDates = useMemo(
     () => getWeekDates(viewedDateKey, firstDayOfWeek, locale),
@@ -282,7 +287,7 @@ function MealPlanner({
     });
   }
 
-  function handleSaveMeal(mealData) {
+  const handleSaveMeal = useCallback((mealData, { keepOpen = false } = {}) => {
     const occupiedMeal = meals.find(
       (meal) =>
         meal.id !== mealData.id &&
@@ -291,21 +296,102 @@ function MealPlanner({
     );
 
     if (occupiedMeal) {
-      setModalState((current) => ({ ...current, occupiedMeal }));
+      setModalState((current) =>
+        current ? { ...current, occupiedMeal } : current
+      );
       return { ok: false, occupiedMeal };
     }
 
     const result = onSaveMeal(mealData);
     if (!result.ok && result.occupiedMeal) {
-      setModalState((current) => ({ ...current, occupiedMeal: result.occupiedMeal }));
+      setModalState((current) =>
+        current ? { ...current, occupiedMeal: result.occupiedMeal } : current
+      );
       return result;
     }
     if (result.ok) {
       setActionError('');
-      setModalState(null);
+      setModalState((current) => {
+        if (!keepOpen || !current) return null;
+        return {
+          ...current,
+          meal: result.meal ?? mealData,
+          initialDate: mealData.date,
+          initialCategory: mealData.category,
+          occupiedMeal: null,
+          selectionError: null,
+        };
+      });
     }
     return result;
+  }, [meals, onSaveMeal]);
+
+  function handleBrowseRecipes({ date, category }) {
+    setActionError('');
+    setModalState((current) =>
+      current
+        ? {
+            ...current,
+            selectionDate: date,
+            selectionCategory: category,
+            selectionError: null,
+          }
+        : current
+    );
+    onBrowseRecipes();
   }
+
+  useEffect(() => {
+    if (
+      !recipeSelection ||
+      appliedRecipeRequest.current === recipeSelection.requestId
+    ) {
+      return;
+    }
+
+    appliedRecipeRequest.current = recipeSelection.requestId;
+    const recipe = recipes.find((item) => item.id === recipeSelection.recipeId);
+    if (!recipe || !modalState) {
+      setModalState((current) =>
+        current
+          ? {
+              ...current,
+              selectionError: { key: 'Selected recipe could not be found.' },
+            }
+          : current
+      );
+      onRecipeApplied(recipeSelection.requestId);
+      return;
+    }
+
+    const mealData = createMealFromRecipe(
+      recipe,
+      modalState.selectionDate ?? modalState.meal?.date ?? modalState.initialDate,
+      modalState.selectionCategory ?? modalState.meal?.category ?? modalState.initialCategory,
+      modalState.meal?.id
+    );
+    const result = handleSaveMeal(mealData, { keepOpen: true });
+    if (!result.ok && result.error) {
+      setModalState((current) =>
+        current
+          ? {
+              ...current,
+              selectionError: {
+                key: 'Meal could not be saved: {error}',
+                values: { error: result.error },
+              },
+            }
+          : current
+      );
+    }
+    onRecipeApplied(recipeSelection.requestId);
+  }, [
+    handleSaveMeal,
+    modalState,
+    onRecipeApplied,
+    recipeSelection,
+    recipes,
+  ]);
 
   function handleRemoveMeal(meal) {
     setMealToRemove(meal);
@@ -497,9 +583,11 @@ function MealPlanner({
           initialCategory={modalState.initialCategory}
           occupiedMeal={modalState.occupiedMeal}
           recipes={recipes}
+          selectionError={modalState.selectionError}
           onClose={() => setModalState(null)}
           onSave={handleSaveMeal}
           onEditOccupied={openEditMeal}
+          onBrowseRecipes={handleBrowseRecipes}
         />
       )}
 

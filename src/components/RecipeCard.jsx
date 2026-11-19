@@ -15,7 +15,13 @@ function MetaIcon({ children }) {
   );
 }
 
-function RecipeCard({ recipe, plannedCount = 0, onView }) {
+function RecipeCard({
+  recipe,
+  plannedCount = 0,
+  selectionMode = false,
+  onView,
+  onChooseRecipe,
+}) {
   const { t } = useTranslation();
   const totalMinutes = recipe.prepMinutes + recipe.cookMinutes;
   const primaryTag = recipe.tags[0];
@@ -24,7 +30,7 @@ function RecipeCard({ recipe, plannedCount = 0, onView }) {
     <article className="recipe-card">
       <div className="recipe-card-media">
         <img src={recipe.imageUrl} alt={recipe.title} loading="lazy" />
-        {primaryTag && <span className="recipe-tag">{primaryTag}</span>}
+        {primaryTag && <span className="recipe-tag">{t(primaryTag)}</span>}
       </div>
 
       <div className="recipe-card-body">
@@ -70,9 +76,19 @@ function RecipeCard({ recipe, plannedCount = 0, onView }) {
           <button type="button" className="recipe-btn-secondary" onClick={() => onView(recipe.id)}>
             {t('View Recipe')}
           </button>
-          <button type="button" className="recipe-btn-primary" disabled title={t('Coming soon')}>
-            {t('Add to Plan')}
-          </button>
+          {selectionMode ? (
+            <button
+              type="button"
+              className="recipe-btn-primary"
+              onClick={() => onChooseRecipe(recipe.id)}
+            >
+              {t('Select recipe')}
+            </button>
+          ) : (
+            <button type="button" className="recipe-btn-primary" disabled title={t('Coming soon')}>
+              {t('Add to Plan')}
+            </button>
+          )}
         </div>
         {plannedCount > 0 && (
           <p className="recipe-planned-count">

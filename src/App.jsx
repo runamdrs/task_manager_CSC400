@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
 import PlannedIngredientsPage from './components/PlannedIngredientsPage.jsx';
@@ -23,6 +23,7 @@ import { toDateKey } from './utils/dates.js';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
 import { loadLanguage, saveLanguage } from './services/languageStorage.js';
+import { translate } from './i18n/translations.js';
 
 // Import the Smart Grocery List component.
 import GroceryList from './components/GroceryList.jsx';
@@ -131,6 +132,8 @@ function App() {
   const [taskFilter, setTaskFilter] = useState('all');
   // Track the task currently being edited, or null while adding a task.
   const [editingTask, setEditingTask] = useState(null);
+  const [recipeSelectionMode, setRecipeSelectionMode] = useState(false);
+  const [recipeSelection, setRecipeSelection] = useState(null);
 
   useEffect(() => {
     function handleStorage(event) {
@@ -157,16 +160,16 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  function handleNavigate(page) {
+  const handleNavigate = useCallback((page) => {
     if (window.location.hash === `#${page}`) {
       setActivePage(page);
       return;
     }
     // Adds a history entry; the hashchange listener updates the page.
     window.location.hash = page;
-  }
+  }, []);
 
-  function handleSavePlannedMeal(mealData) {
+  const handleSavePlannedMeal = useCallback((mealData) => {
     const occupiedMeal = plannedMeals.find(
       (meal) =>
         meal.id !== mealData.id &&
@@ -175,18 +178,46 @@ function App() {
     );
     if (occupiedMeal) return { ok: false, occupiedMeal };
 
+    const savedMeal = mealData.id
+      ? mealData
+      : { ...mealData, id: crypto.randomUUID() };
     const updatedMeals = mealData.id
-      ? plannedMeals.map((meal) => (meal.id === mealData.id ? mealData : meal))
-      : [...plannedMeals, { ...mealData, id: crypto.randomUUID() }];
+      ? plannedMeals.map((meal) => (meal.id === mealData.id ? savedMeal : meal))
+      : [...plannedMeals, savedMeal];
 
     try {
       savePlannedMeals(updatedMeals);
       setPlannedMealState({ meals: updatedMeals, error: '' });
-      return { ok: true };
+      return { ok: true, meal: savedMeal };
     } catch (error) {
       return { ok: false, error: error.message };
     }
-  }
+  }, [plannedMeals]);
+
+  const handleBrowseRecipes = useCallback(() => {
+    setRecipeSelectionMode(true);
+    handleNavigate('recipes');
+  }, [handleNavigate]);
+
+  const handleCancelRecipeSelection = useCallback(() => {
+    setRecipeSelectionMode(false);
+    handleNavigate('meal-planner');
+  }, [handleNavigate]);
+
+  const handleChooseRecipe = useCallback((recipeId) => {
+    setRecipeSelection({
+      recipeId,
+      requestId: crypto.randomUUID(),
+    });
+    setRecipeSelectionMode(false);
+    handleNavigate('meal-planner');
+  }, [handleNavigate]);
+
+  const handleRecipeApplied = useCallback((requestId) => {
+    setRecipeSelection((current) =>
+      current?.requestId === requestId ? null : current
+    );
+  }, []);
 
   function handleRemovePlannedMeal(id) {
     const updatedMeals = plannedMeals.filter((meal) => meal.id !== id);
@@ -283,7 +314,7 @@ function App() {
 
   function handleDelete(id, confirmationText) {
     const confirmed = window.confirm(
-      confirmationText ?? 'Are you sure you want to delete this task?'
+      confirmationText ?? translate(language, 'Are you sure you want to delete this task?')
     );
 
     if (!confirmed) {
@@ -347,10 +378,18 @@ function App() {
             onSaveMeal={handleSavePlannedMeal}
             onRemoveMeal={handleRemovePlannedMeal}
             firstDayOfWeek={preferences.firstDayOfWeek}
+            onBrowseRecipes={handleBrowseRecipes}
+            recipeSelection={recipeSelection}
+            onRecipeApplied={handleRecipeApplied}
           />
         </div>
         <div className="page-panel" hidden={activePage !== 'recipes'}>
-          <RecipesPage plannedMeals={plannedMeals} />
+          <RecipesPage
+            plannedMeals={plannedMeals}
+            recipeSelectionMode={recipeSelectionMode}
+            onChooseRecipe={handleChooseRecipe}
+            onCancelRecipeSelection={handleCancelRecipeSelection}
+          />
         </div>
         <div className="page-panel" hidden={activePage !== 'grocery-list'}>
           <GroceryList

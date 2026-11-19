@@ -17,4 +17,11 @@ describe('translations', () => {
       name: 'Mi receta',
     })).toBe('“Mi receta” se quitará de tu plan semanal.');
   });
+
+  it('translates the recipe-selection flow in every supported language', () => {
+    expect(translate('es', 'Select recipe')).toBe('Elegir receta');
+    expect(translate('de', 'Select recipe')).toBe('Rezept auswählen');
+    expect(translate('es', 'Cancel selection')).toBe('Cancelar selección');
+    expect(translate('de', 'Cancel selection')).toBe('Auswahl abbrechen');
+  });
 });

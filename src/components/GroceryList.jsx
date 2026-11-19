@@ -1,19 +1,23 @@
 
+import { useTranslation } from '../i18n/useTranslation.js';
+
 function GroceryList({
   items,
   onAdd,
   onDelete,
   onTogglePurchased,
 }) {
+  const { t } = useTranslation();
+
   // Add a new grocery item using simple browser prompts.
   function handleAddItem() {
-    const name = window.prompt('Enter grocery item:');
+    const name = window.prompt(t('Enter grocery item:'));
 
     if (!name || name.trim() === '') {
       return;
     }
 
-    const quantity = window.prompt('Enter quantity:');
+    const quantity = window.prompt(t('Enter quantity:'));
 
     if (!quantity || quantity.trim() === '') {
       return;
@@ -44,10 +48,10 @@ function GroceryList({
       {/* Page header */}
       <div className="grocery-header">
         <div>
-          <p className="grocery-label">SMART GROCERY LIST</p>
-          <h2>Grocery List</h2>
+          <p className="grocery-label">{t('SMART GROCERY LIST')}</p>
+          <h2>{t('Grocery List')}</h2>
           <p className="grocery-description">
-            Keep track of the items you need to buy.
+            {t('Keep track of the items you need to buy.')}
           </p>
         </div>
 
@@ -56,7 +60,7 @@ function GroceryList({
             className="clear-button"
             onClick={() => {
               const confirmed = window.confirm(
-                'Remove all purchased items?'
+                t('Remove all purchased items?')
               );
 
               if (confirmed) {
@@ -66,14 +70,14 @@ function GroceryList({
               }
             }}
           >
-            Clear Purchased
+            {t('Clear Purchased')}
           </button>
 
           <button
             className="add-grocery-button"
             onClick={handleAddItem}
           >
-            + Add Item
+            + {t('Add Item')}
           </button>
 
           {/* This will be connected to the Meal Planner later. */}
@@ -81,11 +85,11 @@ function GroceryList({
             className="regenerate-button"
             onClick={() =>
               window.alert(
-                'Recipe generation will be connected to the Meal Planner later.'
+                t('Recipe generation will be connected to the Meal Planner later.')
               )
             }
           >
-            ↻ Regenerate from Plan
+            ↻ {t('Regenerate from Plan')}
           </button>
         </div>
       </div>
@@ -94,26 +98,29 @@ function GroceryList({
       <div className="shopping-progress">
         <div className="progress-top">
           <div>
-            <p className="progress-label">SHOPPING PROGRESS</p>
+            <p className="progress-label">{t('SHOPPING PROGRESS')}</p>
 
             <h3>
-              {purchasedCount} of {totalCount} items purchased
+              {t('{purchased} of {total} items purchased', {
+                purchased: purchasedCount,
+                total: totalCount,
+              })}
             </h3>
           </div>
 
           <div className="progress-numbers">
             <div>
-              <span>Total</span>
+              <span>{t('Total')}</span>
               <strong>{totalCount}</strong>
             </div>
 
             <div>
-              <span>Purchased</span>
+              <span>{t('Purchased')}</span>
               <strong>{purchasedCount}</strong>
             </div>
 
             <div>
-              <span>Remaining</span>
+              <span>{t('Remaining')}</span>
               <strong>{totalCount - purchasedCount}</strong>
             </div>
           </div>
@@ -132,12 +139,10 @@ function GroceryList({
         <div className="info-icon">✦</div>
 
         <div>
-          <strong>Shop smarter with one organized list.</strong>
+          <strong>{t('Shop smarter with one organized list.')}</strong>
 
           <p>
-            Add your grocery items here. Later, planned recipes
-            will automatically add their ingredients and combine
-            duplicate items.
+            {t('Add your grocery items here. Later, planned recipes will automatically add their ingredients and combine duplicate items.')}
           </p>
         </div>
       </div>
@@ -145,10 +150,10 @@ function GroceryList({
       {/* Grocery items */}
       <div className="grocery-section">
         <div className="section-header">
-          <h3>Grocery Items</h3>
+          <h3>{t('Grocery Items')}</h3>
 
           <span>
-            {totalCount} {totalCount === 1 ? 'item' : 'items'}
+            {totalCount} {t(totalCount === 1 ? 'item' : 'items')}
           </span>
         </div>
 
@@ -156,17 +161,17 @@ function GroceryList({
           <div className="empty-grocery">
             <div className="empty-icon">🛒</div>
 
-            <h3>Your grocery list is empty</h3>
+            <h3>{t('Your grocery list is empty')}</h3>
 
             <p>
-              Add your first grocery item to get started.
+              {t('Add your first grocery item to get started.')}
             </p>
 
             <button
               className="add-grocery-button"
               onClick={handleAddItem}
             >
-              + Add Item
+              + {t('Add Item')}
             </button>
           </div>
         ) : (
@@ -188,8 +193,8 @@ function GroceryList({
                   }
                   aria-label={
                     item.purchased
-                      ? 'Mark as not purchased'
-                      : 'Mark as purchased'
+                      ? t('Mark as not purchased')
+                      : t('Mark as purchased')
                   }
                 >
                   {item.purchased ? '✓' : ''}
@@ -213,8 +218,8 @@ function GroceryList({
                   }`}
                 >
                   {item.purchased
-                    ? 'Purchased'
-                    : 'To Buy'}
+                    ? t('Purchased')
+                    : t('To Buy')}
                 </div>
 
                 {/* Actions */}
@@ -225,8 +230,8 @@ function GroceryList({
                     }
                   >
                     {item.purchased
-                      ? 'Undo'
-                      : 'Purchased'}
+                      ? t('Undo')
+                      : t('Purchased')}
                   </button>
 
                   <button
@@ -235,7 +240,7 @@ function GroceryList({
                       onDelete(item.id)
                     }
                   >
-                    Remove
+                    {t('Remove')}
                   </button>
                 </div>
               </div>
@@ -247,15 +252,14 @@ function GroceryList({
       {/* Future recipe section */}
       <div className="recipe-placeholder">
         <div>
-          <strong>Planned Recipes</strong>
+          <strong>{t('Planned Recipes')}</strong>
 
           <p>
-            Recipe ingredients will appear here when the
-            Meal Planner is connected.
+            {t('Recipe ingredients will appear here when the Meal Planner is connected.')}
           </p>
         </div>
 
-        <span>Coming later</span>
+        <span>{t('Coming later')}</span>
       </div>
     </div>
   );
@@ -265,4 +269,3 @@ export default GroceryList;
 
 
       
-

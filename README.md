@@ -26,8 +26,8 @@ build on branch pushes and pull requests. It can also be started manually.
 ## Current features
 
 - Plan, edit, and remove dated meals in the weekly planner
-- Select a library recipe to fill in a planned meal's name, ingredients, time,
-  and image
+- Browse the recipe library from a meal dialog; choosing a recipe adds it to
+  that dialog's selected day and meal category
 - View shared planned meals on the dashboard and recipe library
 - Derive a combined grocery ingredient list from planned meals and recipes
 - Track cooking tasks and grocery purchase progress
