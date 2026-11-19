@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
-import PlannedIngredientsPage from './components/PlannedIngredientsPage.jsx';
 import RecipesPage from './components/RecipesPage.jsx';
 import SettingsPage from './components/SettingsPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -25,7 +24,6 @@ import { loadTasks, saveTasks } from './services/taskStorage.js';
 import { loadLanguage, saveLanguage } from './services/languageStorage.js';
 import { translate } from './i18n/translations.js';
 
-// Import the Smart Grocery List component.
 import GroceryList from './components/GroceryList.jsx';
 
 
@@ -353,10 +351,9 @@ function App() {
         <div className="page-panel" hidden={activePage !== 'dashboard'}>
           <DashboardPage
             plannedMeals={plannedMeals}
-            groceryPurchases={groceryPurchases}
+            weeklyGroceries={weeklyGroceries}
             todayKey={todayKey}
             currentHour={currentHour}
-            firstDayOfWeek={preferences.firstDayOfWeek}
             onToggleGroceryPurchased={handleToggleGroceryPurchased}
             onNavigate={handleNavigate}
             tasks={tasks}
@@ -381,6 +378,7 @@ function App() {
             onBrowseRecipes={handleBrowseRecipes}
             recipeSelection={recipeSelection}
             onRecipeApplied={handleRecipeApplied}
+            onNavigate={handleNavigate}
           />
         </div>
         <div className="page-panel" hidden={activePage !== 'recipes'}>
@@ -394,13 +392,12 @@ function App() {
         <div className="page-panel" hidden={activePage !== 'grocery-list'}>
           <GroceryList
             items={weeklyGroceries.items}
-            weekStart={weeklyGroceries.weekStart}
+            purchaseWeekKey={weeklyGroceries.purchaseWeekKey}
             total={weeklyGroceries.total}
             purchasedCount={weeklyGroceries.purchasedCount}
             remaining={weeklyGroceries.remaining}
             onTogglePurchased={handleToggleGroceryPurchased}
           />
-          <PlannedIngredientsPage plannedMeals={plannedMeals} recipes={RECIPES} />
         </div>
         <div className="page-panel" hidden={activePage !== 'settings'}>
           <SettingsPage

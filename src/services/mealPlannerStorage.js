@@ -1,5 +1,4 @@
 export const MEALS_STORAGE_KEY = 'smartprep-meal-planner-meals';
-const GROCERY_HANDOFF_STORAGE_KEY = 'smartprep-generated-grocery-list';
 const MEAL_CATEGORIES = ['Breakfast', 'Lunch', 'Dinner'];
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -71,11 +70,4 @@ export function savePlannedMeals(meals) {
     throw new Error('Meal data could not be saved because its format is invalid.');
   }
   localStorage.setItem(MEALS_STORAGE_KEY, JSON.stringify(meals));
-}
-
-export function publishGeneratedGroceryList(groceryList) {
-  localStorage.setItem(GROCERY_HANDOFF_STORAGE_KEY, JSON.stringify(groceryList));
-  window.dispatchEvent(
-    new CustomEvent('smartprep:grocery-list-generated', { detail: groceryList })
-  );
 }

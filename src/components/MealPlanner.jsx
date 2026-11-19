@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MealFormModal from './MealFormModal.jsx';
 import {
-  publishGeneratedGroceryList,
-} from '../services/mealPlannerStorage.js';
-import {
   fromDateKey,
   getWeekDateKeys,
   shiftDateKey,
@@ -39,123 +36,6 @@ function getWeekDates(dateKey, firstDayOfWeek, locale) {
   }));
 }
 
-function normalizeIngredientName(name) {
-  return name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
-}
-
-const UNIT_ALIASES = {
-  tsp: ['tsp', 'teaspoon', 'teaspoons'],
-  tbsp: ['tbsp', 'tablespoon', 'tablespoons'],
-  cup: ['c', 'cup', 'cups'],
-  ml: ['ml', 'milliliter', 'milliliters', 'millilitre', 'millilitres'],
-  l: ['l', 'liter', 'liters', 'litre', 'litres'],
-  g: ['g', 'gram', 'grams'],
-  kg: ['kg', 'kilogram', 'kilograms'],
-  oz: ['oz', 'ounce', 'ounces'],
-  lb: ['lb', 'lbs', 'pound', 'pounds'],
-  each: ['each', 'item', 'items', 'piece', 'pieces'],
-  clove: ['clove', 'cloves'],
-  pinch: ['pinch', 'pinches'],
-  can: ['can', 'cans'],
-  package: ['package', 'packages', 'pkg', 'pkgs'],
-};
-
-const UNIT_FACTORS = {
-  tsp: { group: 'volume', factor: 4.92892, label: 'mL' },
-  tbsp: { group: 'volume', factor: 14.7868, label: 'mL' },
-  cup: { group: 'volume', factor: 236.588, label: 'mL' },
-  ml: { group: 'volume', factor: 1, label: 'mL' },
-  l: { group: 'volume', factor: 1000, label: 'mL' },
-  g: { group: 'weight', factor: 1, label: 'g' },
-  kg: { group: 'weight', factor: 1000, label: 'g' },
-  oz: { group: 'weight', factor: 28.3495, label: 'g' },
-  lb: { group: 'weight', factor: 453.592, label: 'g' },
-  each: { group: 'count', factor: 1, label: 'each' },
-  '': { group: 'count', factor: 1, label: 'each' },
-};
-
-function normalizeUnit(unit) {
-  const normalized = unit.toLocaleLowerCase().replace(/\.$/, '');
-  return Object.entries(UNIT_ALIASES).find(([, aliases]) =>
-    aliases.includes(normalized)
-  )?.[0] ?? normalized;
-}
-
-function parseQuantity(quantity) {
-  const match = quantity.trim().match(/^((?:\d+\s*\/\s*\d+)|(?:\d+(?:\.\d+)?))\s*(.*)$/);
-  if (!match) return null;
-
-  const amountText = match[1].replace(/\s/g, '');
-  const [numerator, denominator] = amountText.split('/');
-  const amount = denominator
-    ? Number(numerator) / Number(denominator)
-    : Number(amountText);
-  if (!Number.isFinite(amount)) return null;
-
-  const unit = normalizeUnit(match[2].trim());
-  return { amount, unit };
-}
-
-function formatAmount(amount) {
-  return Number(amount.toFixed(2)).toString();
-}
-
-function aggregateIngredients(meals) {
-  const grouped = new Map();
-
-  meals.forEach((meal) => {
-    meal.ingredients.forEach((ingredient) => {
-      const name = ingredient.name.trim();
-      if (!name) return;
-
-      const nameKey = normalizeIngredientName(name);
-      if (!grouped.has(nameKey)) {
-        grouped.set(nameKey, { name, quantities: new Map(), unspecified: 0 });
-      }
-
-      const aggregate = grouped.get(nameKey);
-      const quantity = ingredient.quantity.trim();
-      if (!quantity) {
-        aggregate.unspecified += 1;
-        return;
-      }
-
-      const parsed = parseQuantity(quantity);
-      if (!parsed) {
-        aggregate.quantities.set(
-          `raw:${quantity.toLocaleLowerCase()}`,
-          { amount: null, display: quantity }
-        );
-        return;
-      }
-
-      const unitInfo = UNIT_FACTORS[parsed.unit];
-      const group = unitInfo?.group ?? `unit:${parsed.unit}`;
-      const key = group.startsWith('unit:') ? `${group}:${parsed.unit}` : group;
-      const convertedAmount = unitInfo ? parsed.amount * unitInfo.factor : parsed.amount;
-      const existing = aggregate.quantities.get(key);
-      aggregate.quantities.set(key, {
-        amount: (existing?.amount ?? 0) + convertedAmount,
-        label: unitInfo?.label ?? parsed.unit,
-        isUnitless: !parsed.unit,
-      });
-    });
-  });
-
-  return [...grouped.values()].map(({ name, quantities, unspecified }) => {
-    const quantityParts = [...quantities.values()].map((quantity) => {
-      if (quantity.amount === null) return quantity.display;
-      const amount = formatAmount(quantity.amount);
-      return quantity.label ? `${amount} ${quantity.label}` : amount;
-    });
-    if (unspecified) quantityParts.push('quantity unspecified');
-    return {
-      name,
-      quantity: quantityParts.join(' + '),
-    };
-  });
-}
-
 function Icon({ name, size = 18 }) {
   const common = {
     width: size,
@@ -186,9 +66,6 @@ function Icon({ name, size = 18 }) {
   }
   if (name === 'right') {
     return <svg {...common}><path d="m9 18 6-6-6-6" /></svg>;
-  }
-  if (name === 'close') {
-    return <svg {...common}><path d="m18 6-12 12M6 6l12 12" /></svg>;
   }
   if (name === 'food') {
     return <svg {...common}><path d="M4 13h16a8 8 0 0 1-16 0Z" /><path d="M12 5v3M7 7l2 2M17 7l-2 2" /></svg>;
@@ -240,6 +117,7 @@ function MealPlanner({
   onBrowseRecipes,
   recipeSelection,
   onRecipeApplied,
+  onNavigate,
 }) {
   const { t, language } = useTranslation();
   const locale = LOCALES[language] ?? LOCALES.en;
@@ -247,7 +125,6 @@ function MealPlanner({
   const [weekPickerOpen, setWeekPickerOpen] = useState(false);
   const [modalState, setModalState] = useState(null);
   const [mealToRemove, setMealToRemove] = useState(null);
-  const [generatedList, setGeneratedList] = useState(null);
   const [actionError, setActionError] = useState('');
   const appliedRecipeRequest = useRef(null);
 
@@ -407,23 +284,6 @@ function MealPlanner({
     }
   }
 
-  function handleGenerateGroceries() {
-    const groceryList = {
-      weekStart: toDateKey(weekStart),
-      weekEnd: toDateKey(weekEnd),
-      generatedAt: new Date().toISOString(),
-      items: aggregateIngredients(visibleMeals),
-    };
-
-    try {
-      publishGeneratedGroceryList(groceryList);
-      setGeneratedList(groceryList);
-      setActionError('');
-    } catch (error) {
-      setActionError(t('Grocery list could not be generated: {error}', { error: error.message }));
-    }
-  }
-
   function changeWeek(dateKey) {
     if (!dateKey) return;
     setViewedDateKey(dateKey);
@@ -439,9 +299,9 @@ function MealPlanner({
               <p className="mp-subtitle">{t('Build a weekly plan that works for you.')}</p>
         </div>
         <div className="mp-header-actions">
-          <button type="button" className="mp-button mp-button-secondary" onClick={handleGenerateGroceries}>
+          <button type="button" className="mp-button mp-button-secondary" onClick={() => onNavigate('grocery-list')}>
             <Icon name="cart" />
-            {t('Generate Grocery List')}
+            {t('Grocery List')}
           </button>
           <button type="button" className="mp-button mp-button-primary" onClick={() => openAddMeal()}>
             <Icon name="plus" />
@@ -505,32 +365,6 @@ function MealPlanner({
             ? t('Saved meals could not be loaded: {error}', { error: storageError })
             : actionError}
         </p>
-      )}
-
-      {generatedList && (
-        <section className="mp-grocery-result" aria-labelledby="mp-grocery-heading">
-          <div className="mp-grocery-heading">
-            <div>
-              <p className="mp-eyebrow">{t('GENERATED FOR THIS WEEK')}</p>
-              <h3 id="mp-grocery-heading">{t('Grocery list')}</h3>
-            </div>
-            <button type="button" className="mp-icon-button" aria-label={t('Close grocery list')} onClick={() => setGeneratedList(null)}>
-              <Icon name="close" />
-            </button>
-          </div>
-          {generatedList.items.length === 0 ? (
-            <p className="mp-grocery-empty">{t('Add ingredients to this week’s meals to build your grocery list.')}</p>
-          ) : (
-            <ul className="mp-grocery-items">
-              {generatedList.items.map((item) => (
-                <li key={normalizeIngredientName(item.name)}>
-                  <span>{item.name}</span>
-                  {item.quantity && <span className="mp-grocery-quantity">{item.quantity}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       )}
 
       <div className="mp-calendar-scroll" aria-label={t('Weekly meal calendar')}>

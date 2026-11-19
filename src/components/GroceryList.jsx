@@ -1,271 +1,136 @@
-
 import { useTranslation } from '../i18n/useTranslation.js';
 
 function GroceryList({
   items,
-  onAdd,
-  onDelete,
+  purchaseWeekKey,
+  total,
+  purchasedCount,
+  remaining,
   onTogglePurchased,
 }) {
   const { t } = useTranslation();
-
-  // Add a new grocery item using simple browser prompts.
-  function handleAddItem() {
-    const name = window.prompt(t('Enter grocery item:'));
-
-    if (!name || name.trim() === '') {
-      return;
-    }
-
-    const quantity = window.prompt(t('Enter quantity:'));
-
-    if (!quantity || quantity.trim() === '') {
-      return;
-    }
-
-    onAdd({
-      name: name.trim(),
-      quantity: quantity.trim(),
-    });
-  }
-
-  // Count purchased items.
-  const purchasedCount = items.filter(
-    (item) => item.purchased
-  ).length;
-
-  // Count total items.
-  const totalCount = items.length;
-
-  // Calculate the shopping progress percentage.
-  const progress =
-    totalCount === 0
-      ? 0
-      : Math.round((purchasedCount / totalCount) * 100);
+  const progress = total === 0 ? 0 : Math.round((purchasedCount / total) * 100);
 
   return (
     <div className="grocery-page">
-      {/* Page header */}
-      <div className="grocery-header">
+      <header className="grocery-header">
         <div>
           <p className="grocery-label">{t('SMART GROCERY LIST')}</p>
-          <h2>{t('Grocery List')}</h2>
+          <h1>{t('Grocery List')}</h1>
           <p className="grocery-description">
-            {t('Keep track of the items you need to buy.')}
+            {t('Add meals in the Meal Planner to add their ingredients to this list.')}
           </p>
         </div>
+      </header>
 
-        <div className="grocery-header-buttons">
-          <button
-            className="clear-button"
-            onClick={() => {
-              const confirmed = window.confirm(
-                t('Remove all purchased items?')
-              );
-
-              if (confirmed) {
-                items
-                  .filter((item) => item.purchased)
-                  .forEach((item) => onDelete(item.id));
-              }
-            }}
-          >
-            {t('Clear Purchased')}
-          </button>
-
-          <button
-            className="add-grocery-button"
-            onClick={handleAddItem}
-          >
-            + {t('Add Item')}
-          </button>
-
-          {/* This will be connected to the Meal Planner later. */}
-          <button
-            className="regenerate-button"
-            onClick={() =>
-              window.alert(
-                t('Recipe generation will be connected to the Meal Planner later.')
-              )
-            }
-          >
-            ↻ {t('Regenerate from Plan')}
-          </button>
-        </div>
-      </div>
-
-      {/* Shopping progress */}
-      <div className="shopping-progress">
+      <section className="shopping-progress" aria-label={t('Shopping progress')}>
         <div className="progress-top">
           <div>
             <p className="progress-label">{t('SHOPPING PROGRESS')}</p>
-
-            <h3>
-              {t('{purchased} of {total} items purchased', {
-                purchased: purchasedCount,
-                total: totalCount,
-              })}
-            </h3>
+            <h2>{purchasedCount} {t('of')} {total} {t('items')} {t('purchased')}</h2>
           </div>
 
           <div className="progress-numbers">
             <div>
               <span>{t('Total')}</span>
-              <strong>{totalCount}</strong>
+              <strong>{total}</strong>
             </div>
-
             <div>
               <span>{t('Purchased')}</span>
               <strong>{purchasedCount}</strong>
             </div>
-
             <div>
               <span>{t('Remaining')}</span>
-              <strong>{totalCount - purchasedCount}</strong>
+              <strong>{remaining}</strong>
             </div>
           </div>
         </div>
 
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{ width: `${progress}%` }}
-          ></div>
+        <div
+          className="progress-bar"
+          role="progressbar"
+          aria-label={t('Grocery items purchased')}
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={purchasedCount}
+        >
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
         </div>
-      </div>
+      </section>
 
-      {/* Information message */}
-      <div className="grocery-info">
-        <div className="info-icon">✦</div>
-
-        <div>
-          <strong>{t('Shop smarter with one organized list.')}</strong>
-
-          <p>
-            {t('Add your grocery items here. Later, planned recipes will automatically add their ingredients and combine duplicate items.')}
-          </p>
-        </div>
-      </div>
-
-      {/* Grocery items */}
-      <div className="grocery-section">
+      <section className="grocery-section" aria-labelledby="grocery-items-heading">
         <div className="section-header">
-          <h3>{t('Grocery Items')}</h3>
-
-          <span>
-            {totalCount} {t(totalCount === 1 ? 'item' : 'items')}
-          </span>
+          <h2 id="grocery-items-heading">{t('Grocery Items')}</h2>
+          <span>{total} {t('items')}</span>
         </div>
 
         {items.length === 0 ? (
           <div className="empty-grocery">
-            <div className="empty-icon">🛒</div>
-
-            <h3>{t('Your grocery list is empty')}</h3>
-
-            <p>
-              {t('Add your first grocery item to get started.')}
-            </p>
-
-            <button
-              className="add-grocery-button"
-              onClick={handleAddItem}
-            >
-              + {t('Add Item')}
-            </button>
+            <div className="empty-icon" aria-hidden="true">🛒</div>
+            <h3>{t('No groceries needed yet')}</h3>
+            <p>{t('Add meals in the Meal Planner to add their ingredients to this list.')}</p>
           </div>
         ) : (
-          <div className="grocery-items">
-            {items.map((item) => (
-              <div
-                className={`grocery-item ${
-                  item.purchased ? 'purchased' : ''
-                }`}
-                key={item.id}
-              >
-                {/* Checkbox */}
-                <button
-                  className={`purchase-check ${
-                    item.purchased ? 'checked' : ''
-                  }`}
-                  onClick={() =>
-                    onTogglePurchased(item.id)
-                  }
-                  aria-label={
-                    item.purchased
-                      ? t('Mark as not purchased')
-                      : t('Mark as purchased')
-                  }
+          <ul className="grocery-items">
+            {items.map((item) => {
+              const isPurchased = item.status === 'purchased';
+              const isNeedsMore = item.status === 'needs-more';
+
+              return (
+                <li
+                  className={`grocery-item${isPurchased ? ' purchased' : ''}${isNeedsMore ? ' needs-more' : ''}`}
+                  key={item.key}
                 >
-                  {item.purchased ? '✓' : ''}
-                </button>
+                  <input
+                    className="purchase-check"
+                    type="checkbox"
+                    checked={isPurchased}
+                    aria-label={t(
+                      isPurchased ? 'Mark {name} as not purchased' : 'Mark {name} as purchased',
+                      { name: item.name }
+                    )}
+                    onChange={() => onTogglePurchased(purchaseWeekKey, item)}
+                  />
 
-                {/* Item information */}
-                <div className="grocery-item-info">
-                  <strong>{item.name}</strong>
+                  <div className="grocery-item-info">
+                    <strong>{item.name}</strong>
+                    {item.quantity && <span>{item.quantity}</span>}
+                    <span className="grocery-source-label">{t('Needed for')}:</span>
+                    <ul
+                      className="grocery-source-list"
+                      aria-label={t('Planned meals requiring {name}', { name: item.name })}
+                    >
+                      {item.sources.map((source) => (
+                        <li key={`${source.mealId}-${source.category}`}>
+                          {source.mealName} — {t(source.category)} ({source.date})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-                  <span>
-                    {item.quantity}
+                  <span
+                    className={`grocery-status ${
+                      isPurchased
+                        ? 'status-purchased'
+                        : isNeedsMore
+                          ? 'status-needs-more'
+                          : 'status-needed'
+                    }`}
+                  >
+                    {isPurchased
+                      ? t('Purchased')
+                      : isNeedsMore
+                        ? t('Needs more')
+                        : t('To buy')}
                   </span>
-                </div>
-
-                {/* Status */}
-                <div
-                  className={`grocery-status ${
-                    item.purchased
-                      ? 'status-purchased'
-                      : 'status-needed'
-                  }`}
-                >
-                  {item.purchased
-                    ? t('Purchased')
-                    : t('To Buy')}
-                </div>
-
-                {/* Actions */}
-                <div className="grocery-actions">
-                  <button
-                    onClick={() =>
-                      onTogglePurchased(item.id)
-                    }
-                  >
-                    {item.purchased
-                      ? t('Undo')
-                      : t('Purchased')}
-                  </button>
-
-                  <button
-                    className="delete-grocery"
-                    onClick={() =>
-                      onDelete(item.id)
-                    }
-                  >
-                    {t('Remove')}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
-      </div>
-
-      {/* Future recipe section */}
-      <div className="recipe-placeholder">
-        <div>
-          <strong>{t('Planned Recipes')}</strong>
-
-          <p>
-            {t('Recipe ingredients will appear here when the Meal Planner is connected.')}
-          </p>
-        </div>
-
-        <span>{t('Coming later')}</span>
-      </div>
+      </section>
     </div>
   );
 }
 
 export default GroceryList;
-
-
-      

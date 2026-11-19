@@ -4,7 +4,6 @@ import { useTranslation } from '../i18n/useTranslation.js';
 import {
   MEAL_CATEGORIES,
   getTodayPrep,
-  getWeeklyGroceries,
   indexRecipes,
 } from '../selectors/grocery.js';
 import { getWeekdayName } from '../utils/dates.js';
@@ -187,7 +186,7 @@ function getGroceryNote(item, t) {
   return '';
 }
 
-function TodayPrepCard({ prep, weekStart, recipesById, onToggleGroceryPurchased, onNavigate }) {
+function TodayPrepCard({ prep, purchaseWeekKey, recipesById, onToggleGroceryPurchased, onNavigate }) {
   const { t } = useTranslation();
 
   return (
@@ -236,7 +235,8 @@ function TodayPrepCard({ prep, weekStart, recipesById, onToggleGroceryPurchased,
                         <input
                           type="checkbox"
                           checked={false}
-                          onChange={() => onToggleGroceryPurchased(weekStart, item.weeklyItem)}
+                          aria-label={t('Mark {name} as purchased', { name: item.name })}
+                          onChange={() => onToggleGroceryPurchased(purchaseWeekKey, item.weeklyItem)}
                         />
                         <span>
                           <span className="today-grocery-name">{item.name}</span>
@@ -285,10 +285,9 @@ function TodayPrepCard({ prep, weekStart, recipesById, onToggleGroceryPurchased,
 
 function DashboardPage({
   plannedMeals,
-  groceryPurchases,
+  weeklyGroceries,
   todayKey,
   currentHour,
-  firstDayOfWeek,
   onToggleGroceryPurchased,
   onNavigate,
   tasks,
@@ -314,15 +313,11 @@ function DashboardPage({
           : t('Good night!');
 
   const recipesById = useMemo(() => indexRecipes(RECIPES), []);
-  const weekly = useMemo(
-    () => getWeeklyGroceries(plannedMeals, recipesById, groceryPurchases, todayKey, firstDayOfWeek),
-    [plannedMeals, recipesById, groceryPurchases, todayKey, firstDayOfWeek]
-  );
   const todayPrep = useMemo(
-    () => getTodayPrep(plannedMeals, recipesById, weekly, todayKey),
-    [plannedMeals, recipesById, weekly, todayKey]
+    () => getTodayPrep(plannedMeals, recipesById, weeklyGroceries, todayKey),
+    [plannedMeals, recipesById, weeklyGroceries, todayKey]
   );
-  const weekMeals = [...weekly.weekMeals]
+  const weekMeals = [...weeklyGroceries.weekMeals]
     .sort(
       (a, b) =>
         a.date.localeCompare(b.date) ||
@@ -338,9 +333,9 @@ function DashboardPage({
       isToday: meal.date === todayKey,
     }));
   const grocerySummary =
-    weekly.total === 0
+    weeklyGroceries.total === 0
       ? t('No groceries needed yet')
-      : `${weekly.remaining} ${t('of')} ${weekly.total} ${t('items')} ${t('left to buy')}`;
+      : `${weeklyGroceries.remaining} ${t('of')} ${weeklyGroceries.total} ${t('items')} ${t('left to buy')}`;
 
   return (
     <div className="app dashboard-page">
@@ -381,7 +376,7 @@ function DashboardPage({
           summary={grocerySummary}
           onNavigate={onNavigate}
         >
-          <GroceryProgressContent weekly={weekly} />
+          <GroceryProgressContent weekly={weeklyGroceries} />
         </SummaryCard>
         <SummaryCard
           icon="checklist"
@@ -410,7 +405,7 @@ function DashboardPage({
         <div className="dashboard-right-column">
           <TodayPrepCard
             prep={todayPrep}
-            weekStart={weekly.purchaseWeekKey}
+            purchaseWeekKey={weeklyGroceries.purchaseWeekKey}
             recipesById={recipesById}
             onToggleGroceryPurchased={onToggleGroceryPurchased}
             onNavigate={onNavigate}

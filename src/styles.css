@@ -1173,58 +1173,6 @@ h2 {
   font-size: 12px;
 }
 
-.mp-grocery-result {
-  margin-bottom: 17px;
-  padding: 17px;
-  border: 1px solid #e1e4de;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.mp-grocery-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.mp-grocery-heading h3 {
-  margin: 4px 0 0;
-  color: #303832;
-  font-family: inherit;
-  font-size: 17px;
-}
-
-.mp-grocery-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 7px 18px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mp-grocery-items li {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 7px 0;
-  border-bottom: 1px solid #f0f1ed;
-  color: #3a443d;
-  font-size: 12px;
-}
-
-.mp-grocery-quantity,
-.mp-grocery-empty {
-  color: #7b887e;
-  font-size: 11px;
-}
-
-.mp-grocery-empty {
-  margin: 0;
-}
-
 .mp-modal-backdrop {
   position: fixed;
   z-index: 1000;
@@ -2280,46 +2228,6 @@ button {
   outline-offset: 2px;
 }
 
-.planned-ingredients-page {
-  margin-top: 24px;
-}
-
-.planned-ingredients-header {
-  margin-bottom: 22px;
-}
-
-.planned-ingredients-header h1 {
-  margin: 0 0 6px;
-}
-
-.planned-ingredients-header > p:last-child {
-  margin: 0;
-  color: #66716a;
-}
-
-.planned-ingredients-list {
-  display: grid;
-  gap: 9px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.planned-ingredients-list li {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px 18px;
-  padding: 13px 15px;
-  border: 1px solid #e1e4df;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.planned-ingredient-quantity {
-  color: #66716a;
-}
-
 .recipe-planned-count {
   margin: 12px 0 0;
   color: #4c765e;
@@ -2536,6 +2444,7 @@ button {
   letter-spacing: 1.5px;
 }
 
+.grocery-header h1,
 .grocery-header h2 {
   margin: 0;
   color: #174735;
@@ -2556,35 +2465,6 @@ button {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.clear-button,
-.add-grocery-button,
-.regenerate-button {
-  border: 1px solid #d6ddd9;
-  border-radius: 7px;
-  padding: 10px 15px;
-  background: #fff;
-  color: #174735;
-  font-family: Arial, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.clear-button:hover,
-.add-grocery-button:hover {
-  background: #f2f6f4;
-}
-
-.regenerate-button {
-  border-color: #174735;
-  color: #fff;
-  background: #174735;
-}
-
-.regenerate-button:hover {
-  background: #205c46;
 }
 
 /* Shopping progress */
@@ -2613,6 +2493,7 @@ button {
   letter-spacing: 1px;
 }
 
+.progress-top h2,
 .progress-top h3 {
   margin: 0;
   color: #fff;
@@ -2722,6 +2603,13 @@ button {
   font-size: 16px;
 }
 
+.section-header h2 {
+  margin: 0;
+  color: #174735;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+}
+
 .section-header span {
   color: #8a948f;
   font-family: Arial, sans-serif;
@@ -2734,12 +2622,15 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .grocery-item {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 100px auto;
-  align-items: center;
+  grid-template-columns: 36px minmax(0, 1fr) 100px;
+  align-items: start;
   gap: 14px;
   min-height: 64px;
   padding: 10px 12px;
@@ -2753,23 +2644,16 @@ button {
 }
 
 .purchase-check {
-  display: flex;
   width: 22px;
   height: 22px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #b9c6bf;
-  border-radius: 5px;
-  background: #fff;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
+  margin: 0;
+  accent-color: #174735;
   cursor: pointer;
 }
 
-.purchase-check.checked {
-  border-color: #174735;
-  background: #174735;
+.purchase-check:focus-visible {
+  outline: 2px solid #4d8065;
+  outline-offset: 2px;
 }
 
 .grocery-item-info {
@@ -2791,6 +2675,23 @@ button {
   font-size: 11px;
 }
 
+.grocery-item-info .grocery-source-label {
+  margin-top: 8px;
+  color: #6f7c75;
+  font-weight: 600;
+}
+
+.grocery-source-list {
+  display: grid;
+  gap: 3px;
+  margin: 3px 0 0;
+  padding: 0;
+  color: #6f7c75;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  list-style: none;
+}
+
 .grocery-item.purchased .grocery-item-info strong {
   color: #8a948f;
   text-decoration: line-through;
@@ -2808,6 +2709,15 @@ button {
 
 .status-needed {
   color: #c48735;
+}
+
+.status-needs-more {
+  color: #a64c4c;
+}
+
+.grocery-item.needs-more {
+  border-color: #e8c9a7;
+  background: #fffaf4;
 }
 
 .grocery-actions {

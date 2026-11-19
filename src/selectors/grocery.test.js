@@ -157,10 +157,12 @@ describe('getWeeklyGroceries', () => {
 
     const withDinner = getWeeklyGroceries([lunch, dinner], noRecipes, purchases, TODAY);
     const rice = withDinner.items.find((item) => item.key === 'rice');
+    const todayPrep = getTodayPrep([lunch, dinner], noRecipes, withDinner, TODAY);
 
     expect(rice.status).toBe('needs-more');
     expect(rice.quantity).toBe('2 cups');
     expect(withDinner.purchasedCount).toBe(0);
+    expect(todayPrep.groceries.find((item) => item.key === 'rice').weeklyItem.status).toBe('needs-more');
   });
 
   it('marks a purchased item as "needs-more" when a new unit is required', () => {
