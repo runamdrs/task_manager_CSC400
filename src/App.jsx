@@ -1,23 +1,28 @@
-// Import React state management for the task collection and active edit state.
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardPage from './components/DashboardPage.jsx';
 import MealPlanner from './components/MealPlanner.jsx';
+import PlannedIngredientsPage from './components/PlannedIngredientsPage.jsx';
 import RecipesPage from './components/RecipesPage.jsx';
 import SettingsPage from './components/SettingsPage.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import { RECIPES } from './data/recipes.js';
+import { LanguageProvider } from './i18n/LanguageContext.jsx';
 import { getWeeklyGroceries, indexRecipes } from './selectors/grocery.js';
-
-
 import {
   getPurchaseKey,
   loadGroceryPurchases,
   saveGroceryPurchases,
 } from './services/groceryStorage.js';
-import { loadPlannedMeals } from './services/mealPlannerStorage.js';
+import {
+  loadPlannedMeals,
+  MEALS_STORAGE_KEY,
+  savePlannedMeals,
+} from './services/mealPlannerStorage.js';
 import { loadPreferences, savePreferences } from './services/preferencesStorage.js';
 import { toDateKey } from './utils/dates.js';
 // Import the browser-storage helpers used to persist tasks between visits.
 import { loadTasks, saveTasks } from './services/taskStorage.js';
+import { loadLanguage, saveLanguage } from './services/languageStorage.js';
 
 // Import the Smart Grocery List component.
 import GroceryList from './components/GroceryList.jsx';
@@ -64,16 +69,16 @@ function getInitialTasks() {
   return stored;
 }
 
-function readPlannedMeals() {
-  // The Meal Planner owns this data and reports load errors on its own page.
+function readInitialPlannedMeals() {
   try {
-    return loadPlannedMeals();
-  } catch {
-    return null;
+    return { meals: loadPlannedMeals(), error: '' };
+  } catch (error) {
+    return { meals: [], error: error.message };
   }
 }
 
 const PAGES = ['dashboard', 'meal-planner', 'recipes', 'grocery-list', 'settings'];
+const RECIPES_BY_ID = indexRecipes(RECIPES);
 
 function getPageFromHash() {
   // The URL hash (#recipes) is the source of truth for the current page, so
@@ -103,8 +108,10 @@ function useClock() {
 
 function App() {
   const [activePage, setActivePage] = useState(getPageFromHash);
-  // Read-only view of the Meal Planner's saved meals for the Dashboard.
-  const [plannedMeals, setPlannedMeals] = useState(() => readPlannedMeals() ?? []);
+  const [plannedMealState, setPlannedMealState] = useState(readInitialPlannedMeals);
+  const { meals: plannedMeals, error: mealStorageError } = plannedMealState;
+  const [language, setLanguage] = useState(loadLanguage);
+  const [languageError, setLanguageError] = useState('');
   // Grocery purchase status; grocery items themselves are derived, not stored.
   const [groceryPurchases, setGroceryPurchases] = useState(loadGroceryPurchases);
   // App-wide preferences, such as which day weekly views start on.
@@ -114,54 +121,92 @@ function App() {
 
   const weeklyGroceries = getWeeklyGroceries(
     plannedMeals,
-    new Map(),
+    RECIPES_BY_ID,
     groceryPurchases,
     todayKey,
     preferences.firstDayOfWeek
-    );
+  );
   const [tasks, setTasks] = useState(getInitialTasks);
   // Keep the selected completion filter in UI state only.
   const [taskFilter, setTaskFilter] = useState('all');
   // Track the task currently being edited, or null while adding a task.
   const [editingTask, setEditingTask] = useState(null);
 
-  // Reload saved meals whenever the Meal Planner reports a change.
-  const refreshPlannedMeals = useCallback(() => {
-    const meals = readPlannedMeals();
-    if (meals) setPlannedMeals(meals);
-  }, []);
-
   useEffect(() => {
-    // Pick up changes saved from another browser tab.
-    function handleStorage() {
-      refreshPlannedMeals();
+    function handleStorage(event) {
+      if (event.key === null || event.key === MEALS_STORAGE_KEY) {
+        try {
+          setPlannedMealState({ meals: loadPlannedMeals(), error: '' });
+        } catch (error) {
+          setPlannedMealState({ meals: [], error: error.message });
+        }
+      }
       setGroceryPurchases(loadGroceryPurchases());
       setPreferences(loadPreferences());
+      setLanguage(loadLanguage());
     }
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, [refreshPlannedMeals]);
+  }, []);
 
   useEffect(() => {
-    // Follow hash changes from links and the browser's back/forward buttons.
     function handleHashChange() {
-      // Re-read meals on page change so the Dashboard never shows stale data.
-      refreshPlannedMeals();
       setActivePage(getPageFromHash());
     }
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [refreshPlannedMeals]);
+  }, []);
 
   function handleNavigate(page) {
     if (window.location.hash === `#${page}`) {
-      // Same page: no hashchange will fire, so refresh here instead.
-      refreshPlannedMeals();
       setActivePage(page);
       return;
     }
     // Adds a history entry; the hashchange listener updates the page.
     window.location.hash = page;
+  }
+
+  function handleSavePlannedMeal(mealData) {
+    const occupiedMeal = plannedMeals.find(
+      (meal) =>
+        meal.id !== mealData.id &&
+        meal.date === mealData.date &&
+        meal.category === mealData.category
+    );
+    if (occupiedMeal) return { ok: false, occupiedMeal };
+
+    const updatedMeals = mealData.id
+      ? plannedMeals.map((meal) => (meal.id === mealData.id ? mealData : meal))
+      : [...plannedMeals, { ...mealData, id: crypto.randomUUID() }];
+
+    try {
+      savePlannedMeals(updatedMeals);
+      setPlannedMealState({ meals: updatedMeals, error: '' });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  }
+
+  function handleRemovePlannedMeal(id) {
+    const updatedMeals = plannedMeals.filter((meal) => meal.id !== id);
+    try {
+      savePlannedMeals(updatedMeals);
+      setPlannedMealState({ meals: updatedMeals, error: '' });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  }
+
+  function handleLanguageChange(nextLanguage) {
+    try {
+      saveLanguage(nextLanguage);
+      setLanguage(nextLanguage);
+      setLanguageError('');
+    } catch (error) {
+      setLanguageError(error.message);
+    }
   }
 
   function handleToggleGroceryPurchased(weekStart, item) {
@@ -236,10 +281,9 @@ function App() {
     setEditingTask(null);
   }
 
-
-  function handleDelete(id) {
+  function handleDelete(id, confirmationText) {
     const confirmed = window.confirm(
-      'Are you sure you want to delete this task?'
+      confirmationText ?? 'Are you sure you want to delete this task?'
     );
 
     if (!confirmed) {
@@ -271,9 +315,10 @@ function App() {
   
 
   return (
-    <div className="app-shell">
-      <Sidebar activePage={activePage} onNavigate={handleNavigate} />
-      <main className="main-content">
+    <LanguageProvider language={language}>
+      <div className="app-shell">
+        <Sidebar activePage={activePage} onNavigate={handleNavigate} />
+        <main className="main-content">
         <div className="page-panel" hidden={activePage !== 'dashboard'}>
           <DashboardPage
             plannedMeals={plannedMeals}
@@ -296,31 +341,40 @@ function App() {
         </div>
         <div className="page-panel" hidden={activePage !== 'meal-planner'}>
           <MealPlanner
-            onPlanChange={refreshPlannedMeals}
+            meals={plannedMeals}
+            recipes={RECIPES}
+            storageError={mealStorageError}
+            onSaveMeal={handleSavePlannedMeal}
+            onRemoveMeal={handleRemovePlannedMeal}
             firstDayOfWeek={preferences.firstDayOfWeek}
           />
         </div>
         <div className="page-panel" hidden={activePage !== 'recipes'}>
-          <RecipesPage />
+          <RecipesPage plannedMeals={plannedMeals} />
         </div>
         <div className="page-panel" hidden={activePage !== 'grocery-list'}>
-            <GroceryList
-              items={weeklyGroceries.items}
-              weekStart={weeklyGroceries.weekStart}
-              total={weeklyGroceries.total}
-              purchasedCount={weeklyGroceries.purchasedCount}
-              remaining={weeklyGroceries.remaining}
-              onTogglePurchased={handleToggleGroceryPurchased}
-              />
-              </div>
+          <GroceryList
+            items={weeklyGroceries.items}
+            weekStart={weeklyGroceries.weekStart}
+            total={weeklyGroceries.total}
+            purchasedCount={weeklyGroceries.purchasedCount}
+            remaining={weeklyGroceries.remaining}
+            onTogglePurchased={handleToggleGroceryPurchased}
+          />
+          <PlannedIngredientsPage plannedMeals={plannedMeals} recipes={RECIPES} />
+        </div>
         <div className="page-panel" hidden={activePage !== 'settings'}>
           <SettingsPage
+            language={language}
+            languageError={languageError}
+            onLanguageChange={handleLanguageChange}
             firstDayOfWeek={preferences.firstDayOfWeek}
             onFirstDayOfWeekChange={handleFirstDayOfWeekChange}
           />
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </LanguageProvider>
   );
 }
 

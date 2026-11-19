@@ -1,4 +1,4 @@
-const MEALS_STORAGE_KEY = 'smartprep-meal-planner-meals';
+export const MEALS_STORAGE_KEY = 'smartprep-meal-planner-meals';
 const GROCERY_HANDOFF_STORAGE_KEY = 'smartprep-generated-grocery-list';
 const MEAL_CATEGORIES = ['Breakfast', 'Lunch', 'Dinner'];
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -21,6 +21,7 @@ function isValidMeal(meal) {
     meal.id &&
     typeof meal.name === 'string' &&
     meal.name.trim() &&
+    (meal.recipeId === undefined || meal.recipeId === null || typeof meal.recipeId === 'string') &&
     isValidDate(meal.date) &&
     MEAL_CATEGORIES.includes(meal.category) &&
     Array.isArray(meal.ingredients) &&

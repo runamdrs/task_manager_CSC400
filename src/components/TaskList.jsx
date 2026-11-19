@@ -1,5 +1,6 @@
 // Import the reusable row component for individual tasks.
 import TaskItem from './TaskItem.jsx';
+import { useTranslation } from '../i18n/useTranslation.js';
 
 const TASK_FILTERS = [
   { value: 'all', label: 'All' },
@@ -15,6 +16,7 @@ function TaskList({
   onDelete,
   onToggleComplete,
 }) {
+  const { t } = useTranslation();
   const filteredTasks = tasks.filter((task) => {
     if (taskFilter === 'active') {
       return !task.completed;
@@ -29,7 +31,7 @@ function TaskList({
 
   return (
     <>
-      <div className="task-filters" role="group" aria-label="Filter tasks by status">
+      <div className="task-filters" role="group" aria-label={t('Filter tasks by status')}>
         {TASK_FILTERS.map((filter) => (
           <button
             key={filter.value}
@@ -38,15 +40,17 @@ function TaskList({
             aria-pressed={taskFilter === filter.value}
             onClick={() => onTaskFilterChange(filter.value)}
           >
-            {filter.label}
+            {t(filter.label)}
           </button>
         ))}
       </div>
 
       {tasks.length === 0 ? (
-        <p className="empty-message">No tasks yet! Add your first task above.</p>
+        <p className="empty-message">{t('No tasks yet! Add your first task above.')}</p>
       ) : filteredTasks.length === 0 ? (
-        <p className="empty-message">No {taskFilter} tasks.</p>
+        <p className="empty-message">
+          {t(taskFilter === 'completed' ? 'No completed tasks.' : 'No active tasks.')}
+        </p>
       ) : (
         // Render matching task rows while preserving each task's stable id as the key.
         <ul className="task-list">

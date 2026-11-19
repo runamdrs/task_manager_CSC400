@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { RECIPES } from '../data/recipes.js';
+import { useTranslation } from '../i18n/useTranslation.js';
 import RecipeCard from './RecipeCard.jsx';
 import RecipeDetail from './RecipeDetail.jsx';
 
@@ -51,7 +52,8 @@ function filterAndSortRecipes(recipes, filters) {
   return results;
 }
 
-function RecipesPage() {
+function RecipesPage({ plannedMeals }) {
+  const { t } = useTranslation();
   const [selectedRecipeId, setSelectedRecipeId] = useState(null);
   const [search, setSearch] = useState('');
   const [mealType, setMealType] = useState('all');
@@ -89,16 +91,16 @@ function RecipesPage() {
     <div className="app recipes-page">
       <header className="recipes-header">
         <div className="recipes-header-copy">
-          <p className="eyebrow">03 — Recipe Library</p>
-          <h1>Recipes</h1>
-          <p>Find something delicious to make.</p>
+          <p className="eyebrow">{t('03 — Recipe Library')}</p>
+          <h1>{t('Recipes')}</h1>
+          <p>{t('Find something delicious to make.')}</p>
         </div>
-        <button type="button" className="recipe-add-btn" disabled title="Coming soon">
-          + Add Recipe
+        <button type="button" className="recipe-add-btn" disabled title={t('Coming soon')}>
+          + {t('Add Recipe')}
         </button>
       </header>
 
-      <section className="recipe-filters" aria-label="Search and filter recipes">
+      <section className="recipe-filters" aria-label={t('Search and filter recipes')}>
         <div className="recipe-search">
           <svg
             className="recipe-search-icon"
@@ -114,87 +116,87 @@ function RecipesPage() {
             <path d="m20 20-3.5-3.5" />
           </svg>
           <label className="visually-hidden" htmlFor="recipe-search">
-            Search recipes
+            {t('Search recipes')}
           </label>
           <input
             id="recipe-search"
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search recipes or ingredients..."
+            placeholder={t('Search recipes or ingredients...')}
           />
         </div>
 
         <div className="recipe-filter-group">
-          <label htmlFor="recipe-meal-type">Meal type</label>
+          <label htmlFor="recipe-meal-type">{t('Meal type')}</label>
           <select
             id="recipe-meal-type"
             value={mealType}
             onChange={(event) => setMealType(event.target.value)}
           >
-            <option value="all">All</option>
-            <option value="Breakfast">Breakfast</option>
-            <option value="Lunch">Lunch</option>
-            <option value="Dinner">Dinner</option>
+            <option value="all">{t('All')}</option>
+            <option value="Breakfast">{t('Breakfast')}</option>
+            <option value="Lunch">{t('Lunch')}</option>
+            <option value="Dinner">{t('Dinner')}</option>
           </select>
         </div>
 
         <div className="recipe-filter-group">
-          <label htmlFor="recipe-prep-time">Prep time</label>
+          <label htmlFor="recipe-prep-time">{t('Prep time')}</label>
           <select
             id="recipe-prep-time"
             value={prepTime}
             onChange={(event) => setPrepTime(event.target.value)}
           >
-            <option value="all">All</option>
-            <option value="under15">Under 15 mins</option>
-            <option value="15-30">15-30 mins</option>
-            <option value="over30">Over 30 mins</option>
+            <option value="all">{t('All')}</option>
+            <option value="under15">{t('Under 15 mins')}</option>
+            <option value="15-30">{t('15-30 mins')}</option>
+            <option value="over30">{t('Over 30 mins')}</option>
           </select>
         </div>
 
         <div className="recipe-filter-group">
-          <label htmlFor="recipe-dietary">Dietary</label>
+          <label htmlFor="recipe-dietary">{t('Dietary')}</label>
           <select
             id="recipe-dietary"
             value={dietary}
             onChange={(event) => setDietary(event.target.value)}
           >
-            <option value="all">All</option>
-            <option value="Vegetarian">Vegetarian</option>
-            <option value="High Protein">High Protein</option>
-            <option value="Vegan">Vegan</option>
-            <option value="Gluten-Free">Gluten-Free</option>
+            <option value="all">{t('All')}</option>
+            <option value="Vegetarian">{t('Vegetarian')}</option>
+            <option value="High Protein">{t('High Protein')}</option>
+            <option value="Vegan">{t('Vegan')}</option>
+            <option value="Gluten-Free">{t('Gluten-Free')}</option>
           </select>
         </div>
 
         <div className="recipe-filter-group">
-          <label htmlFor="recipe-sort">Sort by</label>
+          <label htmlFor="recipe-sort">{t('Sort by')}</label>
           <select
             id="recipe-sort"
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value)}
           >
-            <option value="name">Name</option>
-            <option value="prep">Prep time</option>
-            <option value="total">Total time</option>
+            <option value="name">{t('Name')}</option>
+            <option value="prep">{t('Prep time')}</option>
+            <option value="total">{t('Total time')}</option>
           </select>
         </div>
       </section>
 
       <p className="recipe-results-count">
-        {visibleRecipes.length} recipe{visibleRecipes.length === 1 ? '' : 's'} — Showing recipes
-        for your current filters.
+        {t('{count} recipes — Showing recipes for your current filters.', { count: visibleRecipes.length })}
       </p>
 
       {visibleRecipes.length === 0 ? (
-        <p className="empty-message">No recipes match your search or filters.</p>
+        <p className="empty-message">{t('No recipes match your search or filters.')}</p>
       ) : (
         <div className="recipe-grid">
           {visibleRecipes.map((recipe) => (
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
+              plannedCount={plannedMeals.filter((meal) => meal.recipeId === recipe.id).length}
               onView={setSelectedRecipeId}
             />
           ))}
